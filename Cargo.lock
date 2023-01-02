@@ -63,16 +63,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
-name = "bjorn"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "serenity",
- "tokio",
-]
-
-[[package]]
 name = "block-buffer"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -245,6 +235,16 @@ checksum = "8168378f4e5023e7218c89c891c0fd8ecdb5e5e4f18cb78f38cf245dd021e76f"
 dependencies = [
  "block-buffer",
  "crypto-common",
+]
+
+[[package]]
+name = "dumb_bjorn"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serenity",
+ "tokio",
 ]
 
 [[package]]
@@ -986,6 +986,16 @@ name = "smallvec"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
+
+[[package]]
+name = "smart_bjorn"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serenity",
+ "tokio",
+]
 
 [[package]]
 name = "socket2"

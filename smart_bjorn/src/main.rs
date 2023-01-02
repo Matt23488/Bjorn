@@ -25,8 +25,8 @@ impl EventHandler for Handler {}
 
 #[tokio::main]
 async fn main() {
-    let config = fs::read_to_string("config.json").unwrap();
-    let config: Config = serde_json::from_str(config.as_str()).unwrap();
+    let config = fs::read_to_string("../config.json").expect("config file");
+    let config: Config = serde_json::from_str(config.as_str()).expect("valid config json");
 
 
     let framework = StandardFramework::new()
