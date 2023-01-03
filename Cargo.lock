@@ -136,6 +136,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "config"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -241,6 +249,7 @@ dependencies = [
 name = "dumb_bjorn"
 version = "0.1.0"
 dependencies = [
+ "config",
  "serde",
  "serde_json",
  "serenity",
@@ -991,8 +1000,7 @@ checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 name = "smart_bjorn"
 version = "0.1.0"
 dependencies = [
- "serde",
- "serde_json",
+ "config",
  "serenity",
  "tokio",
 ]

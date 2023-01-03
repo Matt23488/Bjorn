@@ -3,4 +3,5 @@
 members = [
     "dumb_bjorn",
     "smart_bjorn",
+    "config"
 ]
