@@ -1,0 +1,5 @@
+[default]
+port = 64209
+
+[release]
+address = "0.0.0.0"
