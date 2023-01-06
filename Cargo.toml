@@ -3,5 +3,7 @@
 members = [
     "bjorn",
     "config",
-    "web",
+    "web_client",
+    "web_server",
+    "manager",
 ]

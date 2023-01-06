@@ -1,10 +1,10 @@
 use config::Config;
 use config::Environment;
 use serenity::async_trait;
-use serenity::prelude::*;
-use serenity::model::channel::Message;
 use serenity::framework::standard::macros::{command, group};
-use serenity::framework::standard::{StandardFramework, CommandResult};
+use serenity::framework::standard::{CommandResult, StandardFramework};
+use serenity::model::channel::Message;
+use serenity::prelude::*;
 
 #[group]
 #[commands(ping)]

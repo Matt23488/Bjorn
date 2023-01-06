@@ -1,5 +1,5 @@
+use serde::{Deserialize, Serialize};
 use std::fs;
-use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -53,11 +53,17 @@ impl Secrets {
 pub struct Environment;
 
 impl Environment {
-    pub fn load<TConfig>(config_file_path: &str, secrets_file_path: &str) -> Option<(TConfig, Secrets)>
+    pub fn load<TConfig>(
+        config_file_path: &str,
+        secrets_file_path: &str,
+    ) -> Option<(TConfig, Secrets)>
     where
         for<'de> TConfig: Serialize + Deserialize<'de>,
     {
-        match (Config::load_specific(config_file_path), Secrets::load(secrets_file_path)) {
+        match (
+            Config::load_specific(config_file_path),
+            Secrets::load(secrets_file_path),
+        ) {
             (Some(config), Some(secrets)) => Some((config, secrets)),
             _ => None,
         }
