@@ -17,9 +17,7 @@ fn index() -> &'static str {
 async fn main() -> Result<(), rocket::Error> {
     let _ws_client = BjornWsClient::new(BjornWsClientType::WebServer);
 
-    let figment = rocket::Config::figment().merge(("port", 64209));
-
-    let _rocket = rocket::custom(figment)
+    let _rocket = rocket::build()
         .mount("/", routes![index])
         .attach(CORS)
         .launch()
