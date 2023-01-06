@@ -3281,7 +3281,7 @@ name = "web_server"
 version = "0.1.0"
 dependencies = [
  "rocket",
- "websocket",
+ "ws_protocol",
 ]
 
 [[package]]
@@ -3550,10 +3550,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "ws_server"
+name = "ws_protocol"
 version = "0.1.0"
 dependencies = [
  "websocket",
+]
+
+[[package]]
+name = "ws_server"
+version = "0.1.0"
+dependencies = [
+ "ws_protocol",
 ]
 
 [[package]]

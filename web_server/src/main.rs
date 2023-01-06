@@ -1,12 +1,12 @@
 #[macro_use]
 extern crate rocket;
 
-use std::thread;
+// use std::thread;
 
-use websocket::ClientBuilder;
 
 mod cors;
 use cors::CORS;
+use ws_protocol::BjornWsClient;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -15,21 +15,7 @@ fn index() -> &'static str {
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
-    let ws_thread = thread::spawn(|| {
-        let client = ClientBuilder::new("ws://127.0.0.1:42069")
-            .unwrap()
-            .connect_insecure()
-            .unwrap();
-
-        let (mut receiver, _) = client.split().unwrap();
-
-        for message in receiver.incoming_messages() {
-            match message {
-                Ok(message) => println!("Received: {message:?}"),
-                Err(_) => (),
-            }
-        }
-    });
+    let _ws_client = BjornWsClient::new("web_server");
 
     let figment = rocket::Config::figment().merge(("port", 64209));
 
@@ -38,8 +24,6 @@ async fn main() -> Result<(), rocket::Error> {
         .attach(CORS)
         .launch()
         .await?;
-
-    ws_thread.join().unwrap();
 
     Ok(())
 }
