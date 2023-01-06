@@ -6,6 +6,11 @@ use serenity::framework::standard::{CommandResult, StandardFramework};
 use serenity::model::channel::Message;
 use serenity::prelude::*;
 
+use serenity_ctrlc::Ext;
+
+use ws_protocol::BjornWsClient;
+use ws_protocol::BjornWsClientType;
+
 #[group]
 #[commands(ping)]
 struct General;
@@ -17,6 +22,8 @@ impl EventHandler for Handler {}
 
 #[tokio::main]
 async fn main() {
+    let _ws_client = BjornWsClient::new(BjornWsClientType::Discord);
+
     let (config, secrets) = match Environment::load::<Config>("config.json", "../secrets.json") {
         Some(env) => env,
         None => return,
@@ -31,7 +38,9 @@ async fn main() {
         .event_handler(Handler)
         .framework(framework)
         .await
-        .expect("Error creating client");
+        .expect("Error creating client")
+        .ctrlc()
+        .expect("Error registering Ctrl+C handler");
 
     // start listening for events by starting a single shard
     if let Err(why) = client.start().await {

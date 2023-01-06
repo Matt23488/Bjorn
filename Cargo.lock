@@ -436,6 +436,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctrlc"
+version = "3.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1631ca6e3c59112501a9d87fd86f21591ff77acd31331e8a73f8d80a65bbdd71"
+dependencies = [
+ "nix",
+ "windows-sys 0.42.0",
+]
+
+[[package]]
 name = "cxx"
 version = "1.0.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -554,7 +564,9 @@ dependencies = [
  "serde",
  "serde_json",
  "serenity",
+ "serenity_ctrlc",
  "tokio",
+ "ws_protocol",
 ]
 
 [[package]]
@@ -1516,6 +1528,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46a58d1d356c6597d08cde02c2f09d785b09e28711837b1ed667dc652c08a694"
+dependencies = [
+ "bitflags",
+ "cfg-if 1.0.0",
+ "libc",
+ "static_assertions",
+]
+
+[[package]]
 name = "nom"
 version = "7.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2447,6 +2471,17 @@ dependencies = [
  "typemap_rev",
  "url 2.3.1",
  "uwl",
+]
+
+[[package]]
+name = "serenity_ctrlc"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccbf5fb83c8092bb802462f91cde3a7791e7a6ab89b5597e3c1356bc8b80627b"
+dependencies = [
+ "ctrlc",
+ "serenity",
+ "tokio",
 ]
 
 [[package]]

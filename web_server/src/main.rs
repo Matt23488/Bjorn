@@ -6,7 +6,7 @@ extern crate rocket;
 
 mod cors;
 use cors::CORS;
-use ws_protocol::BjornWsClient;
+use ws_protocol::{BjornWsClient, BjornWsClientType};
 
 #[get("/")]
 fn index() -> &'static str {
@@ -15,7 +15,7 @@ fn index() -> &'static str {
 
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
-    let _ws_client = BjornWsClient::new("web_server");
+    let _ws_client = BjornWsClient::new(BjornWsClientType::WebServer);
 
     let figment = rocket::Config::figment().merge(("port", 64209));
 
