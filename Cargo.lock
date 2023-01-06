@@ -194,17 +194,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
-name = "bjorn"
-version = "0.1.0"
-dependencies = [
- "config",
- "serde",
- "serde_json",
- "serenity",
- "tokio",
-]
-
-[[package]]
 name = "block-buffer"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -555,6 +544,17 @@ dependencies = [
  "block-buffer 0.10.3",
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "discord"
+version = "0.1.0"
+dependencies = [
+ "config",
+ "serde",
+ "serde_json",
+ "serenity",
+ "tokio",
 ]
 
 [[package]]
@@ -1354,13 +1354,6 @@ dependencies = [
  "serde_json",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "manager"
-version = "0.1.0"
-dependencies = [
- "websocket",
 ]
 
 [[package]]
@@ -3554,6 +3547,13 @@ checksum = "d59cefebd0c892fa2dd6de581e937301d8552cb44489cdff035c6187cb63fa5e"
 dependencies = [
  "winapi 0.2.8",
  "winapi-build",
+]
+
+[[package]]
+name = "ws_server"
+version = "0.1.0"
+dependencies = [
+ "websocket",
 ]
 
 [[package]]

@@ -1,9 +1,9 @@
 [workspace]
 
 members = [
-    "bjorn",
+    "discord",
     "config",
     "web_client",
     "web_server",
-    "manager",
+    "ws_server",
 ]
