@@ -3,9 +3,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
-use websocket::{OwnedMessage, CloseData};
 use websocket::sync::{Server, Writer};
 use websocket::Message;
+use websocket::{CloseData, OwnedMessage};
 use workers::{spawn_client_worker, spawn_server_worker};
 
 mod workers;
@@ -31,7 +31,10 @@ impl BjornWsClientType {
 impl From<&BjornWsClientType> for OwnedMessage {
     fn from(client: &BjornWsClientType) -> Self {
         match client {
-            BjornWsClientType::Invalid => OwnedMessage::Close(Some(CloseData { status_code: 1, reason: String::from("Invalid client type") })),
+            BjornWsClientType::Invalid => OwnedMessage::Close(Some(CloseData {
+                status_code: 1,
+                reason: String::from("Invalid client type"),
+            })),
             BjornWsClientType::Discord => OwnedMessage::Text(String::from("discord")),
             BjornWsClientType::WebServer => OwnedMessage::Text(String::from("web_server")),
         }
@@ -55,7 +58,7 @@ impl From<&OwnedMessage> for BjornWsClientType {
                 "discord" => BjornWsClientType::Discord,
                 "web_server" => BjornWsClientType::WebServer,
                 _ => BjornWsClientType::Invalid,
-            }
+            },
             _ => BjornWsClientType::Invalid,
         }
     }
@@ -72,7 +75,8 @@ impl BjornWsClient {
         let cancellation_token = Arc::new(AtomicBool::new(false));
         let ws_client = Arc::new(Mutex::new(None));
 
-        let thread = spawn_client_worker(client_type, cancellation_token.clone(), ws_client.clone());
+        let thread =
+            spawn_client_worker(client_type, cancellation_token.clone(), ws_client.clone());
 
         BjornWsClient {
             thread: Some(thread),
@@ -97,7 +101,13 @@ impl BjornWsClient {
     pub fn shutdown(mut self) {
         if let Some(thread) = self.thread.take() {
             self.cancellation_token.store(true, Ordering::SeqCst);
-            self.ws_client.lock().unwrap().as_mut().unwrap().send_message(&OwnedMessage::from(ShutdownMessage("shutdown() called"))).unwrap();
+            self.ws_client
+                .lock()
+                .unwrap()
+                .as_mut()
+                .unwrap()
+                .send_message(&OwnedMessage::from(ShutdownMessage("shutdown() called")))
+                .unwrap();
             thread.join().unwrap();
         }
     }

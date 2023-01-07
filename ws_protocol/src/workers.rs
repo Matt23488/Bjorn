@@ -1,24 +1,42 @@
-use std::{sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, time::Duration, thread::{self, JoinHandle}, net::TcpStream, collections::HashMap};
+use std::{
+    collections::HashMap,
+    net::TcpStream,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
+    thread::{self, JoinHandle},
+    time::Duration,
+};
 
-use websocket::{ClientBuilder, OwnedMessage, Message, CloseData, WebSocketError, sync::{Client, Server, Writer}, server::NoTlsAcceptor};
+use websocket::{
+    server::NoTlsAcceptor,
+    sync::{Client, Server, Writer},
+    ClientBuilder, CloseData, Message, OwnedMessage, WebSocketError,
+};
 
 use crate::BjornWsClientType;
 
-pub fn spawn_client_worker(client_type: BjornWsClientType, cancellation_token: Arc<AtomicBool>, ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>) -> JoinHandle<()> {
+pub fn spawn_client_worker(
+    client_type: BjornWsClientType,
+    cancellation_token: Arc<AtomicBool>,
+    ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>,
+) -> JoinHandle<()> {
     thread::spawn(move || {
         while !cancellation_token.load(Ordering::SeqCst) {
             println!("connecting to server");
             let mut client = match ClientBuilder::new("ws://127.0.0.1:42069")
                 .unwrap()
-                .connect_insecure() {
-                    Ok(client) => client,
-                    Err(_) => {
-                        println!("Failed to connect to ws_server. Retrying in 5 seconds...");
-                        thread::sleep(Duration::from_secs(5));
-                        continue;
-                    },
-                };
-            
+                .connect_insecure()
+            {
+                Ok(client) => client,
+                Err(_) => {
+                    println!("Failed to connect to ws_server. Retrying in 5 seconds...");
+                    thread::sleep(Duration::from_secs(5));
+                    continue;
+                }
+            };
+
             match client.recv_message() {
                 Ok(OwnedMessage::Text(welcome)) => match welcome.as_str() {
                     "Bjorn" => (),
@@ -26,22 +44,34 @@ pub fn spawn_client_worker(client_type: BjornWsClientType, cancellation_token: A
                         kill_client(client, "Unrecognized welcome message");
                         return;
                     }
-                }
-                _ => println!("error")
+                },
+                _ => println!("error"),
             };
 
             let (mut receiver, sender) = client.split().unwrap();
-    
+
             *ws_client.lock().unwrap() = Some(sender);
 
-            ws_client.lock().unwrap().as_mut().unwrap().send_message(&Message::from(client_type)).unwrap();
+            ws_client
+                .lock()
+                .unwrap()
+                .as_mut()
+                .unwrap()
+                .send_message(&Message::from(client_type))
+                .unwrap();
             let cancellation_token = Arc::new(AtomicBool::new(false));
             let cancelled = cancellation_token.clone();
 
             let ws_mutex = ws_client.clone();
             let ping_loop = thread::spawn(move || {
                 while !cancelled.load(Ordering::SeqCst) {
-                    ws_mutex.lock().unwrap().as_mut().unwrap().send_message(&OwnedMessage::Ping(vec![4, 20, 69])).unwrap();
+                    ws_mutex
+                        .lock()
+                        .unwrap()
+                        .as_mut()
+                        .unwrap()
+                        .send_message(&OwnedMessage::Ping(vec![4, 20, 69]))
+                        .unwrap();
                     thread::sleep(Duration::from_secs(5));
                 }
             });
@@ -60,9 +90,12 @@ pub fn spawn_client_worker(client_type: BjornWsClientType, cancellation_token: A
                         break;
                     }
                 }
-            };
+            }
 
-            println!("Connection closed: {}", close_reason.unwrap_or(String::from("No reason specified.")));
+            println!(
+                "Connection closed: {}",
+                close_reason.unwrap_or(String::from("No reason specified."))
+            );
 
             receiver.shutdown().unwrap();
             cancellation_token.store(true, Ordering::SeqCst);
@@ -99,11 +132,14 @@ pub fn spawn_server_worker(server: BjornWsServer) -> JoinHandle<()> {
                     kill_client(client, client_type.as_str());
                     return;
                 }
-                
+
                 let (mut receiver, sender) = client.split().unwrap();
                 let sender = Arc::new(Mutex::new(sender));
 
-                client_map.lock().unwrap().insert(client_type, sender.clone());
+                client_map
+                    .lock()
+                    .unwrap()
+                    .insert(client_type, sender.clone());
 
                 let mut close_reason = None;
                 for message in receiver.incoming_messages() {
@@ -112,15 +148,22 @@ pub fn spawn_server_worker(server: BjornWsServer) -> JoinHandle<()> {
                             close_reason = data.map(|CloseData { reason, .. }| reason);
                             break;
                         }
-                        Ok(OwnedMessage::Ping(data)) => sender.lock().unwrap().send_message(&Message::pong(data)).unwrap(),
+                        Ok(OwnedMessage::Ping(data)) => sender
+                            .lock()
+                            .unwrap()
+                            .send_message(&Message::pong(data))
+                            .unwrap(),
                         Ok(message) => println!("Received: {message:?}"),
                         Err(WebSocketError::NoDataAvailable) => (),
                         Err(e) => println!("{e}"),
                     }
-                };
+                }
 
                 let sender = client_map.lock().unwrap().remove(&client_type).unwrap();
-                println!("Connection closed: {}", close_reason.unwrap_or(String::from("No reason specified.")));
+                println!(
+                    "Connection closed: {}",
+                    close_reason.unwrap_or(String::from("No reason specified."))
+                );
                 sender.lock().unwrap().shutdown().unwrap();
             });
         }

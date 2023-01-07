@@ -3,7 +3,6 @@ extern crate rocket;
 
 // use std::thread;
 
-
 mod cors;
 use cors::CORS;
 use ws_protocol::{BjornWsClient, BjornWsClientType};
