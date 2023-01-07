@@ -22,7 +22,7 @@ impl EventHandler for Handler {}
 
 #[tokio::main]
 async fn main() {
-    let _ws_client = BjornWsClient::new(BjornWsClientType::Discord);
+    let ws_client = BjornWsClient::new(BjornWsClientType::Discord);
 
     let (config, secrets) = match Environment::load::<Config>("config.json", "../secrets.json") {
         Some(env) => env,
@@ -46,6 +46,8 @@ async fn main() {
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
+
+    ws_client.shutdown();
 }
 
 #[command]

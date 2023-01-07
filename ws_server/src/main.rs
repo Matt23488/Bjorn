@@ -1,5 +1,7 @@
 use ws_protocol::BjornWsServer;
 
 fn main() {
-    let _server = BjornWsServer::new();
+    let server = BjornWsServer::new();
+
+    server.join_connection_thread();
 }

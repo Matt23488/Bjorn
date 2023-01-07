@@ -16,13 +16,15 @@ fn index() -> &'static str {
 // TODO: I need to nix the server alltogether and just use the ws_server as the backend for the web client
 #[rocket::main]
 async fn main() -> Result<(), rocket::Error> {
-    let _ws_client = BjornWsClient::new(BjornWsClientType::WebServer);
+    let ws_client = BjornWsClient::new(BjornWsClientType::WebServer);
 
     let _rocket = rocket::build()
         .mount("/", routes![index])
         .attach(CORS)
         .launch()
         .await?;
+
+    ws_client.shutdown();
 
     Ok(())
 }

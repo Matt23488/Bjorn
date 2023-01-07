@@ -1,10 +1,10 @@
 use std::{sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex}, time::Duration, thread::{self, JoinHandle}, net::TcpStream, collections::HashMap};
 
-use websocket::{ClientBuilder, OwnedMessage, Message, CloseData, WebSocketError, sync::{Client, Server}, server::NoTlsAcceptor};
+use websocket::{ClientBuilder, OwnedMessage, Message, CloseData, WebSocketError, sync::{Client, Server, Writer}, server::NoTlsAcceptor};
 
 use crate::BjornWsClientType;
 
-pub fn spawn_client_worker(client_type: BjornWsClientType, cancellation_token: Arc<AtomicBool>) -> JoinHandle<()> {
+pub fn spawn_client_worker(client_type: BjornWsClientType, cancellation_token: Arc<AtomicBool>, ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>) -> JoinHandle<()> {
     thread::spawn(move || {
         while !cancellation_token.load(Ordering::SeqCst) {
             println!("connecting to server");
@@ -18,7 +18,7 @@ pub fn spawn_client_worker(client_type: BjornWsClientType, cancellation_token: A
                         continue;
                     },
                 };
-    
+            
             match client.recv_message() {
                 Ok(OwnedMessage::Text(welcome)) => match welcome.as_str() {
                     "Bjorn" => (),
@@ -30,15 +30,18 @@ pub fn spawn_client_worker(client_type: BjornWsClientType, cancellation_token: A
                 _ => println!("error")
             };
 
-            let (mut receiver, mut sender) = client.split().unwrap();
+            let (mut receiver, sender) = client.split().unwrap();
+    
+            *ws_client.lock().unwrap() = Some(sender);
 
-            sender.send_message(&Message::from(client_type)).unwrap();
+            ws_client.lock().unwrap().as_mut().unwrap().send_message(&Message::from(client_type)).unwrap();
             let cancellation_token = Arc::new(AtomicBool::new(false));
             let cancelled = cancellation_token.clone();
 
+            let ws_mutex = ws_client.clone();
             let ping_loop = thread::spawn(move || {
                 while !cancelled.load(Ordering::SeqCst) {
-                    sender.send_message(&OwnedMessage::Ping(vec![4, 20, 69])).unwrap();
+                    ws_mutex.lock().unwrap().as_mut().unwrap().send_message(&OwnedMessage::Ping(vec![4, 20, 69])).unwrap();
                     thread::sleep(Duration::from_secs(5));
                 }
             });

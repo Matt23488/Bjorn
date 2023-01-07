@@ -1,9 +1,10 @@
+use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
 use websocket::{OwnedMessage, CloseData};
-use websocket::sync::Server;
+use websocket::sync::{Server, Writer};
 use websocket::Message;
 use workers::{spawn_client_worker, spawn_server_worker};
 
@@ -63,25 +64,40 @@ impl From<&OwnedMessage> for BjornWsClientType {
 pub struct BjornWsClient {
     thread: Option<thread::JoinHandle<()>>,
     cancellation_token: Arc<AtomicBool>,
+    ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>,
 }
 
 impl BjornWsClient {
     pub fn new(client_type: BjornWsClientType) -> Self {
         let cancellation_token = Arc::new(AtomicBool::new(false));
+        let ws_client = Arc::new(Mutex::new(None));
 
-        let thread = spawn_client_worker(client_type, cancellation_token.clone());
+        let thread = spawn_client_worker(client_type, cancellation_token.clone(), ws_client.clone());
 
         BjornWsClient {
             thread: Some(thread),
             cancellation_token,
+            ws_client,
         }
     }
 }
 
-impl Drop for BjornWsClient {
-    fn drop(&mut self) {
+struct ShutdownMessage(&'static str);
+
+impl From<ShutdownMessage> for OwnedMessage {
+    fn from(message: ShutdownMessage) -> Self {
+        OwnedMessage::Close(Some(CloseData {
+            status_code: u16::MAX,
+            reason: String::from(message.0),
+        }))
+    }
+}
+
+impl BjornWsClient {
+    pub fn shutdown(mut self) {
         if let Some(thread) = self.thread.take() {
             self.cancellation_token.store(true, Ordering::SeqCst);
+            self.ws_client.lock().unwrap().as_mut().unwrap().send_message(&OwnedMessage::from(ShutdownMessage("shutdown() called"))).unwrap();
             thread.join().unwrap();
         }
     }
@@ -103,8 +119,8 @@ impl BjornWsServer {
     }
 }
 
-impl Drop for BjornWsServer {
-    fn drop(&mut self) {
+impl BjornWsServer {
+    pub fn join_connection_thread(mut self) {
         if let Some(thread) = self.connection_thread.take() {
             println!("Joining connection thread...");
             thread.join().unwrap();
