@@ -7,11 +7,15 @@ use yew_hooks::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{console, window, Request, RequestInit, Response};
 
+use crate::ws_client::WsClient;
+
 #[styled_component(App)]
 pub fn app() -> Html {
     let counter = use_state(|| 0);
 
     let message = use_async(fetch_message());
+
+    let _ws_client = use_context::<WsClient>();
 
     let onclick = {
         let counter = counter.clone();

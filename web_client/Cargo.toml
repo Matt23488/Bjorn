@@ -21,5 +21,6 @@ features = [
     "RequestInit",
     "RequestMode",
     "Response",
+    "WebSocket",
     "console"
 ]

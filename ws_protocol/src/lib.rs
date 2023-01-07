@@ -119,7 +119,7 @@ pub struct BjornWsServer {
 
 impl BjornWsServer {
     pub fn new() -> Self {
-        let server = Server::bind("127.0.0.1:42069").unwrap();
+        let server = Server::bind("0.0.0.0:42069").unwrap();
 
         let connection_thread = spawn_server_worker(server);
 
