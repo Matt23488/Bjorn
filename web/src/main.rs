@@ -7,7 +7,6 @@ use app::App;
 mod ws_client;
 use ws_client::WsClientProvider;
 
-
 #[styled_component(Index)]
 fn index() -> Html {
     html! {

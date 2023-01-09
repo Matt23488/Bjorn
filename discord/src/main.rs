@@ -25,7 +25,9 @@ impl EventHandler for Handler {}
 
 #[tokio::main]
 async fn main() {
-    let ws_client = std::sync::Arc::new(std::sync::Mutex::new(Some(BjornWsClient::new(BjornWsClientType::Discord))));
+    let ws_client = std::sync::Arc::new(std::sync::Mutex::new(Some(BjornWsClient::new(
+        BjornWsClientType::Discord,
+    ))));
 
     let (config, secrets) = match Environment::load::<Config>("config.json", "../secrets.json") {
         Some(env) => env,
@@ -45,19 +47,19 @@ async fn main() {
             .await
             .expect("Error creating client")
             .ctrlc_with(move |dc| {
-                    let ws_client = ws_client.clone();
-                    async move {
-                        println!("Ctrl+C detected");
-                        println!("Disconnecting Discord bot");
-                        Disconnector::disconnect_some(dc).await;
+                let ws_client = ws_client.clone();
+                async move {
+                    println!("Ctrl+C detected");
+                    println!("Disconnecting Discord bot");
+                    Disconnector::disconnect_some(dc).await;
 
-                        println!("Closing WebSocket client");
-                        if let Some(client) = ws_client.lock().unwrap().take() {
-                            client.shutdown();
-                        }
+                    println!("Closing WebSocket client");
+                    if let Some(client) = ws_client.lock().unwrap().take() {
+                        client.shutdown();
                     }
-                })
-                .expect("Error registering Ctrl+C handler")
+                }
+            })
+            .expect("Error registering Ctrl+C handler")
     };
 
     let mut data = client.data.write().await;
@@ -82,14 +84,23 @@ async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 async fn ws(ctx: &Context, msg: &Message) -> CommandResult {
     let data = ctx.data.read().await;
-    
+
     if msg.content.len() < 4 {
-        msg.reply(ctx, "You must specify a message to send.").await?;
+        msg.reply(ctx, "You must specify a message to send.")
+            .await?;
     } else {
-        let ws_closed = {
-            if let Some(ws) = data.get::<BjornWsClient>().unwrap().get("ws").unwrap().lock().unwrap().as_ref() {
-                ws.send_message(&msg.content[4..]).is_err()
-            } else { true }
+        let ws_closed = if let Some(ws) = data
+            .get::<BjornWsClient>()
+            .unwrap()
+            .get("ws")
+            .unwrap()
+            .lock()
+            .unwrap()
+            .as_ref()
+        {
+            ws.send_message(&msg.content[4..]).is_err()
+        } else {
+            true
         };
 
         if ws_closed {

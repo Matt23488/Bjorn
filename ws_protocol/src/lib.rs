@@ -85,8 +85,13 @@ impl BjornWsClient {
         let ws_client = Arc::new(Mutex::new(None));
         let (sender, receiver) = std::sync::mpsc::channel::<String>();
 
-        let thread =
-            spawn_client_worker(client_type, cancellation_token.clone(), ws_client.clone(), sender.clone(), receiver);
+        let thread = spawn_client_worker(
+            client_type,
+            cancellation_token.clone(),
+            ws_client.clone(),
+            sender.clone(),
+            receiver,
+        );
 
         BjornWsClient {
             thread: Some(thread),
@@ -97,11 +102,14 @@ impl BjornWsClient {
     }
 
     pub fn send_message<S: Into<String>>(&self, message: S) -> Result<(), String> {
-        match (self.ws_client.lock().unwrap().as_ref(), self.sender.lock().unwrap().as_ref()) {
+        match (
+            self.ws_client.lock().unwrap().as_ref(),
+            self.sender.lock().unwrap().as_ref(),
+        ) {
             (Some(_), Some(sender)) => match sender.send(message.into()) {
                 Ok(_) => Ok(()),
                 Err(err) => Err(err.to_string()),
-            }
+            },
             _ => Err("Sender closed".into()),
         }
     }
@@ -131,10 +139,7 @@ impl BjornWsClient {
         if let Some(thread) = self.thread.take() {
             drop(self.sender.lock().unwrap().take());
             self.cancellation_token.store(true, Ordering::SeqCst);
-            if let Some(ws_client) = self.ws_client
-                .lock()
-                .unwrap()
-                .as_mut() {
+            if let Some(ws_client) = self.ws_client.lock().unwrap().as_mut() {
                 ws_client
                     .send_message(&OwnedMessage::from(ShutdownMessage("shutdown() called")))
                     .unwrap();

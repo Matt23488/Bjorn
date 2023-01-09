@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{WebSocket, console, MessageEvent};
+use web_sys::{console, MessageEvent, WebSocket};
 use yew::prelude::*;
 
 macro_rules! console_log {
@@ -35,8 +35,11 @@ impl WsConnection {
                     *handshake_successful.borrow_mut() = true;
                     ws_.send_with_str("web").unwrap();
                 } else {
-                    console_log!("Connection doesn't appear to be bjorn (received {message}). Aborting.");
-                    ws_.close_with_code_and_reason(1000, "Unknown server").unwrap();
+                    console_log!(
+                        "Connection doesn't appear to be bjorn (received {message}). Aborting."
+                    );
+                    ws_.close_with_code_and_reason(1000, "Unknown server")
+                        .unwrap();
                 }
             } else {
                 console::log_2(&"Unknown message received:".into(), &e.data());
@@ -101,7 +104,9 @@ fn use_ws_client() -> WsClientContext {
         let connection = connection.clone();
         let ws = ws.clone();
         Callback::from(move |_| {
-            ws.set(Some(WsConnection::connect(SERVER_URL, connection.setter()).unwrap()));
+            ws.set(Some(
+                WsConnection::connect(SERVER_URL, connection.setter()).unwrap(),
+            ));
         })
     };
 
@@ -110,7 +115,8 @@ fn use_ws_client() -> WsClientContext {
         let ws_opt = ws.clone();
         Callback::from(move |_| {
             if let (WsConnection::Connected, Some(ws)) = (&*connection, &*ws_opt) {
-                ws.close_with_code_and_reason(1000, "Manual disconnect").unwrap();
+                ws.close_with_code_and_reason(1000, "Manual disconnect")
+                    .unwrap();
                 connection.set(WsConnection::Disconnected);
                 ws_opt.set(None);
             }
@@ -131,6 +137,6 @@ fn use_ws_client() -> WsClientContext {
         connection,
         try_connect,
         disconnect,
-        send_text
+        send_text,
     }
 }

@@ -3,7 +3,8 @@ use std::{
     net::TcpStream,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex, mpsc::{Receiver, Sender},
+        mpsc::{Receiver, Sender},
+        Arc, Mutex,
     },
     thread::{self, JoinHandle},
     time::Duration,
@@ -63,7 +64,7 @@ pub fn spawn_client_worker(
                 .send_message(&Message::from(client_type))
                 .unwrap();
             let cancellation_token = Arc::new(AtomicBool::new(false));
-            
+
             let ws_message_loop = {
                 let ws_client = ws_client.clone();
                 let receiver = message_receiver.clone();
@@ -73,10 +74,12 @@ pub fn spawn_client_worker(
                     match message {
                         Ok(message) => match message.as_str() {
                             "!@#$QUIT$#@!" => break,
-                            message => if let Some(ws_client) = &mut *ws_client.lock().unwrap() {
-                                ws_client.send_message(&Message::text(message)).unwrap();
-                            },
-                        }
+                            message => {
+                                if let Some(ws_client) = &mut *ws_client.lock().unwrap() {
+                                    ws_client.send_message(&Message::text(message)).unwrap();
+                                }
+                            }
+                        },
                         Err(_) => {
                             break;
                         }

@@ -3,7 +3,7 @@ use stylist::yew::styled_component;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::ws_client::{WsConnection, WsClientContext};
+use crate::ws_client::{WsClientContext, WsConnection};
 
 #[styled_component(App)]
 pub fn app() -> Html {
@@ -22,14 +22,12 @@ pub fn app() -> Html {
 
     let toggle_connection = {
         let ws_context = ws_context.clone();
-        move |_| {
-            match &*ws_context.connection {
-                WsConnection::Connected => {
-                    ws_context.disconnect.emit(());
-                }
-                _ => {
-                    ws_context.try_connect.emit(());
-                }
+        move |_| match &*ws_context.connection {
+            WsConnection::Connected => {
+                ws_context.disconnect.emit(());
+            }
+            _ => {
+                ws_context.try_connect.emit(());
             }
         }
     };
