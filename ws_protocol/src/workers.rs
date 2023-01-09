@@ -133,6 +133,8 @@ pub fn spawn_server_worker(server: BjornWsServer) -> JoinHandle<()> {
                     return;
                 }
 
+                println!("{client_type:?} client connected");
+
                 let (mut receiver, sender) = client.split().unwrap();
                 let sender = Arc::new(Mutex::new(sender));
 

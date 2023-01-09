@@ -1,21 +1,16 @@
 use stylist::yew::styled_component;
 
-use wasm_bindgen::prelude::*;
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
-use yew_hooks::prelude::*;
 
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{console, window, Request, RequestInit, Response};
-
-use crate::ws_client::WsClient;
+use crate::ws_client::{WsConnection, WsClientContext};
 
 #[styled_component(App)]
 pub fn app() -> Html {
     let counter = use_state(|| 0);
+    let message_input = use_node_ref();
 
-    let message = use_async(fetch_message());
-
-    let _ws_client = use_context::<WsClient>();
+    let ws_context = use_context::<WsClientContext>().expect("context to be there");
 
     let onclick = {
         let counter = counter.clone();
@@ -25,11 +20,27 @@ pub fn app() -> Html {
         }
     };
 
-    let get_message = {
-        let message = message.clone();
-        Callback::from(move |_| {
-            message.run();
-        })
+    let toggle_connection = {
+        let ws_context = ws_context.clone();
+        move |_| {
+            match &*ws_context.connection {
+                WsConnection::Connected => {
+                    ws_context.disconnect.emit(());
+                }
+                _ => {
+                    ws_context.try_connect.emit(());
+                }
+            }
+        }
+    };
+
+    let send_text = {
+        let ws_context = ws_context.clone();
+        let message_input = message_input.clone();
+        move |_| {
+            let message_input = message_input.cast::<HtmlInputElement>().unwrap();
+            ws_context.send_text.emit(message_input.value());
+        }
     };
 
     let container_div = css!(
@@ -47,67 +58,34 @@ pub fn app() -> Html {
     "#
     );
 
-    let message_div = counter_div.clone();
+    let ws_div = counter_div.clone();
 
     html! {
         <div class={container_div}>
-            <div class={message_div}>
-                <button onclick={get_message} disabled={message.loading}>{"Get Message"}</button>
-                <h3>{"Message from web server:"}</h3>
-                <span>
+            <div class={ws_div}>
+                <button onclick={toggle_connection}>
                 {
-                    if message.loading {
-                        html! { "<Loading...>" }
-                    } else {
-                        html! {}
+                    match &*ws_context.connection {
+                        WsConnection::Connected => "Disconnect",
+                        WsConnection::Disconnected => "Connect",
                     }
                 }
+                </button>
                 {
-                    if let Some(data) = &message.data {
-                        html! { data }
-                    } else {
-                        html! {}
-                    }
+                    if let WsConnection::Connected = &*ws_context.connection {
+                        html!{
+                            <>
+                                <input ref={message_input} type="text" />
+                                <button onclick={send_text}>{"Send Text"}</button>
+                            </>
+                        }
+                    } else { html! {} }
                 }
-                {
-                    if let Some(error) = &message.error {
-                        html! { error }
-                    } else {
-                        html! {}
-                    }
-                }
-                </span>
             </div>
             <div class={counter_div}>
                 <button {onclick}>{"+1"}</button>
                 <p>{*counter}</p>
             </div>
         </div>
-    }
-}
-
-#[wasm_bindgen]
-pub async fn fetch_message() -> Result<String, String> {
-    let window = window().unwrap();
-
-    let mut opts = RequestInit::new();
-    opts.method("GET");
-
-    let request = Request::new_with_str_and_init("http://127.0.0.1:64209/", &opts).unwrap();
-
-    console::log_1(&"Fetching from server".into());
-    match JsFuture::from(window.fetch_with_request(&request)).await {
-        Ok(response) => {
-            let response: Response = match response.try_into() {
-                Ok(response) => response,
-                _ => return Err(String::from("Invalid response")),
-            };
-
-            let text = JsFuture::from(response.text().unwrap()).await.unwrap();
-            let text = text.as_string().unwrap();
-
-            Ok(text)
-        }
-        Err(_) => Err(String::from("404")),
     }
 }

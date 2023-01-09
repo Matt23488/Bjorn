@@ -10,20 +10,24 @@ use workers::{spawn_client_worker, spawn_server_worker};
 
 mod workers;
 
-#[derive(Hash, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, Hash, PartialEq, Eq, Copy, Clone)]
 pub enum BjornWsClientType {
     Invalid,
     Discord,
-    WebServer,
+    Web,
     // TODO: Minecraft, Valheim
 }
+
+const CLIENT_TYPE_INVALID: &str = "Invalid client type";
+const CLIENT_TYPE_DISCORD: &str = "discord";
+const CLIENT_TYPE_WEB: &str = "web";
 
 impl BjornWsClientType {
     fn as_str(self) -> &'static str {
         match self {
-            BjornWsClientType::Invalid => "Invalid client type",
-            BjornWsClientType::Discord => "discord",
-            BjornWsClientType::WebServer => "web_server",
+            BjornWsClientType::Invalid => CLIENT_TYPE_INVALID,
+            BjornWsClientType::Discord => CLIENT_TYPE_DISCORD,
+            BjornWsClientType::Web => CLIENT_TYPE_WEB,
         }
     }
 }
@@ -33,10 +37,10 @@ impl From<&BjornWsClientType> for OwnedMessage {
         match client {
             BjornWsClientType::Invalid => OwnedMessage::Close(Some(CloseData {
                 status_code: 1,
-                reason: String::from("Invalid client type"),
+                reason: String::from(CLIENT_TYPE_INVALID),
             })),
-            BjornWsClientType::Discord => OwnedMessage::Text(String::from("discord")),
-            BjornWsClientType::WebServer => OwnedMessage::Text(String::from("web_server")),
+            BjornWsClientType::Discord => OwnedMessage::Text(String::from(CLIENT_TYPE_DISCORD)),
+            BjornWsClientType::Web => OwnedMessage::Text(String::from(CLIENT_TYPE_WEB)),
         }
     }
 }
@@ -44,9 +48,9 @@ impl From<&BjornWsClientType> for OwnedMessage {
 impl From<BjornWsClientType> for Message<'_> {
     fn from(client: BjornWsClientType) -> Self {
         match client {
-            BjornWsClientType::Invalid => Message::close_because(1, "Invalid client type"),
-            BjornWsClientType::Discord => Message::text("discord"),
-            BjornWsClientType::WebServer => Message::text("web_server"),
+            BjornWsClientType::Invalid => Message::close_because(1, CLIENT_TYPE_INVALID),
+            BjornWsClientType::Discord => Message::text(CLIENT_TYPE_DISCORD),
+            BjornWsClientType::Web => Message::text(CLIENT_TYPE_WEB),
         }
     }
 }
@@ -55,8 +59,8 @@ impl From<&OwnedMessage> for BjornWsClientType {
     fn from(message: &OwnedMessage) -> Self {
         match message {
             OwnedMessage::Text(text) => match text.as_str() {
-                "discord" => BjornWsClientType::Discord,
-                "web_server" => BjornWsClientType::WebServer,
+                CLIENT_TYPE_DISCORD => BjornWsClientType::Discord,
+                CLIENT_TYPE_WEB => BjornWsClientType::Web,
                 _ => BjornWsClientType::Invalid,
             },
             _ => BjornWsClientType::Invalid,

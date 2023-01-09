@@ -4,7 +4,6 @@ members = [
     "discord",
     "config",
     "web_client",
-    "web_server",
     "ws_server",
     "ws_protocol"
 ]
