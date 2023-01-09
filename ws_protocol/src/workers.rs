@@ -3,7 +3,7 @@ use std::{
     net::TcpStream,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
+        Arc, Mutex, mpsc::{Receiver, Sender},
     },
     thread::{self, JoinHandle},
     time::Duration,
@@ -21,7 +21,10 @@ pub fn spawn_client_worker(
     client_type: BjornWsClientType,
     cancellation_token: Arc<AtomicBool>,
     ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>,
+    message_sender: Sender<String>,
+    message_receiver: Receiver<String>,
 ) -> JoinHandle<()> {
+    let message_receiver = Arc::new(Mutex::new(message_receiver));
     thread::spawn(move || {
         while !cancellation_token.load(Ordering::SeqCst) {
             println!("connecting to server");
@@ -60,21 +63,26 @@ pub fn spawn_client_worker(
                 .send_message(&Message::from(client_type))
                 .unwrap();
             let cancellation_token = Arc::new(AtomicBool::new(false));
-            let cancelled = cancellation_token.clone();
+            
+            let ws_message_loop = {
+                let ws_client = ws_client.clone();
+                let receiver = message_receiver.clone();
+                thread::spawn(move || loop {
+                    let message = receiver.lock().unwrap().recv();
 
-            let ws_mutex = ws_client.clone();
-            let ping_loop = thread::spawn(move || {
-                while !cancelled.load(Ordering::SeqCst) {
-                    ws_mutex
-                        .lock()
-                        .unwrap()
-                        .as_mut()
-                        .unwrap()
-                        .send_message(&OwnedMessage::Ping(vec![4, 20, 69]))
-                        .unwrap();
-                    thread::sleep(Duration::from_secs(5));
-                }
-            });
+                    match message {
+                        Ok(message) => match message.as_str() {
+                            "!@#$QUIT$#@!" => break,
+                            message => if let Some(ws_client) = &mut *ws_client.lock().unwrap() {
+                                ws_client.send_message(&Message::text(message)).unwrap();
+                            },
+                        }
+                        Err(_) => {
+                            break;
+                        }
+                    }
+                })
+            };
 
             let mut close_reason = None;
             for message in receiver.incoming_messages() {
@@ -97,9 +105,11 @@ pub fn spawn_client_worker(
                 close_reason.unwrap_or(String::from("No reason specified."))
             );
 
+            ws_client.lock().unwrap().take();
             receiver.shutdown().unwrap();
             cancellation_token.store(true, Ordering::SeqCst);
-            ping_loop.join().unwrap();
+            message_sender.send("!@#$QUIT$#@!".into()).unwrap();
+            ws_message_loop.join().unwrap();
         }
     })
 }
@@ -155,7 +165,7 @@ pub fn spawn_server_worker(server: BjornWsServer) -> JoinHandle<()> {
                             .unwrap()
                             .send_message(&Message::pong(data))
                             .unwrap(),
-                        Ok(message) => println!("Received: {message:?}"),
+                        Ok(message) => println!("Received from {client_type:?}: {message:?}"),
                         Err(WebSocketError::NoDataAvailable) => (),
                         Err(e) => println!("{e}"),
                     }

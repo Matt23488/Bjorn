@@ -2,3 +2,4 @@
 config.json
 secrets.json
 dist/
+.vscode/

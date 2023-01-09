@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
@@ -74,22 +76,43 @@ pub struct BjornWsClient {
     thread: Option<thread::JoinHandle<()>>,
     cancellation_token: Arc<AtomicBool>,
     ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>,
+    sender: Arc<Mutex<Option<Sender<String>>>>,
 }
 
 impl BjornWsClient {
     pub fn new(client_type: BjornWsClientType) -> Self {
         let cancellation_token = Arc::new(AtomicBool::new(false));
         let ws_client = Arc::new(Mutex::new(None));
+        let (sender, receiver) = std::sync::mpsc::channel::<String>();
 
         let thread =
-            spawn_client_worker(client_type, cancellation_token.clone(), ws_client.clone());
+            spawn_client_worker(client_type, cancellation_token.clone(), ws_client.clone(), sender.clone(), receiver);
 
         BjornWsClient {
             thread: Some(thread),
             cancellation_token,
             ws_client,
+            sender: Arc::new(Mutex::new(Some(sender))),
         }
     }
+
+    pub fn send_message<S: Into<String>>(&self, message: S) -> Result<(), String> {
+        match (self.ws_client.lock().unwrap().as_ref(), self.sender.lock().unwrap().as_ref()) {
+            (Some(_), Some(sender)) => match sender.send(message.into()) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(err.to_string()),
+            }
+            _ => Err("Sender closed".into()),
+        }
+    }
+}
+
+#[cfg(feature = "serenity")]
+use serenity::prelude::*;
+
+#[cfg(feature = "serenity")]
+impl TypeMapKey for BjornWsClient {
+    type Value = HashMap<String, Arc<Mutex<Option<BjornWsClient>>>>;
 }
 
 struct ShutdownMessage(&'static str);
@@ -106,14 +129,16 @@ impl From<ShutdownMessage> for OwnedMessage {
 impl BjornWsClient {
     pub fn shutdown(mut self) {
         if let Some(thread) = self.thread.take() {
+            drop(self.sender.lock().unwrap().take());
             self.cancellation_token.store(true, Ordering::SeqCst);
-            self.ws_client
+            if let Some(ws_client) = self.ws_client
                 .lock()
                 .unwrap()
-                .as_mut()
-                .unwrap()
-                .send_message(&OwnedMessage::from(ShutdownMessage("shutdown() called")))
-                .unwrap();
+                .as_mut() {
+                ws_client
+                    .send_message(&OwnedMessage::from(ShutdownMessage("shutdown() called")))
+                    .unwrap();
+            }
             thread.join().unwrap();
         }
     }
