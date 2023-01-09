@@ -3,6 +3,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
+// TODO: Look into tokio-tungstenite to replace websocket
+// TODO: https://github.com/snapview/tokio-tungstenite/blob/master/examples/server.rs
 use websocket::sync::{Server, Writer};
 use websocket::Message;
 use websocket::{CloseData, OwnedMessage};
