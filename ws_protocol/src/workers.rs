@@ -3,7 +3,7 @@ use std::{
     net::TcpStream,
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc::{Receiver, Sender},
+        mpsc,
         Arc, Mutex,
     },
     thread::{self, JoinHandle},
@@ -16,14 +16,14 @@ use websocket::{
     ClientBuilder, CloseData, Message, OwnedMessage, WebSocketError,
 };
 
-use crate::BjornWsClientType;
+use crate::{BjornWsClientType, MessageCallback};
 
 pub fn spawn_client_worker(
     client_type: BjornWsClientType,
     cancellation_token: Arc<AtomicBool>,
     ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>,
-    message_sender: Sender<String>,
-    message_receiver: Receiver<String>,
+    message_sender: mpsc::Sender<String>,
+    message_receiver: mpsc::Receiver<String>,
 ) -> JoinHandle<()> {
     let message_receiver = Arc::new(Mutex::new(message_receiver));
     thread::spawn(move || {
@@ -119,12 +119,13 @@ pub fn spawn_client_worker(
 
 type BjornWsServer = Server<NoTlsAcceptor>;
 
-pub fn spawn_server_worker(server: BjornWsServer) -> JoinHandle<()> {
+pub fn spawn_server_worker(server: BjornWsServer, message_callback: MessageCallback, cancellation_token: Arc<AtomicBool>) -> JoinHandle<()> {
     let client_map = Arc::new(Mutex::new(HashMap::new()));
 
     thread::spawn(move || {
-        for connection in server.filter_map(Result::ok) {
+        for connection in server.filter_map(Result::ok).take_while(|_| !cancellation_token.load(Ordering::SeqCst)) {
             let client_map = client_map.clone();
+            let message_callback = message_callback.clone();
             thread::spawn(move || {
                 let mut client = connection.accept().unwrap();
 
@@ -168,6 +169,7 @@ pub fn spawn_server_worker(server: BjornWsServer) -> JoinHandle<()> {
                             .unwrap()
                             .send_message(&Message::pong(data))
                             .unwrap(),
+                        Ok(OwnedMessage::Text(text)) => message_callback.lock().unwrap()(text),
                         Ok(message) => println!("Received from {client_type:?}: {message:?}"),
                         Err(WebSocketError::NoDataAvailable) => (),
                         Err(e) => println!("{e}"),

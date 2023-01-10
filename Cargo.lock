@@ -2905,6 +2905,7 @@ dependencies = [
 name = "ws_server"
 version = "0.1.0"
 dependencies = [
+ "ctrlc",
  "ws_protocol",
 ]
 

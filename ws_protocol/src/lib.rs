@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Sender, self};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
@@ -83,7 +83,7 @@ impl BjornWsClient {
     pub fn new(client_type: BjornWsClientType) -> Self {
         let cancellation_token = Arc::new(AtomicBool::new(false));
         let ws_client = Arc::new(Mutex::new(None));
-        let (sender, receiver) = std::sync::mpsc::channel::<String>();
+        let (sender, receiver) = mpsc::channel::<String>();
 
         let thread = spawn_client_worker(
             client_type,
@@ -149,27 +149,38 @@ impl BjornWsClient {
     }
 }
 
+type MessageCallback = Arc<Mutex<dyn Fn(String) + Send + 'static>>;
+
 pub struct BjornWsServer {
     connection_thread: Option<JoinHandle<()>>,
+    cancellation_token: Arc<AtomicBool>,
 }
 
 impl BjornWsServer {
-    pub fn new() -> Self {
+    pub fn new<F>(message_callback: F) -> Self
+    where
+        F: Fn(String) + Send + 'static,
+    {
         let server = Server::bind("0.0.0.0:42069").unwrap();
 
-        let connection_thread = spawn_server_worker(server);
+        let message_callback = Arc::new(Mutex::new(message_callback));
+
+        let cancellation_token = Arc::new(AtomicBool::new(false));
+        let connection_thread = spawn_server_worker(server, message_callback, cancellation_token.clone());
 
         BjornWsServer {
             connection_thread: Some(connection_thread),
+            cancellation_token,
         }
     }
-}
 
-impl BjornWsServer {
-    pub fn join_connection_thread(mut self) {
+    pub fn wait(&mut self) {
         if let Some(thread) = self.connection_thread.take() {
-            println!("Joining connection thread...");
             thread.join().unwrap();
         }
+    }
+
+    pub fn stop(&self) {
+        self.cancellation_token.store(true, Ordering::SeqCst);
     }
 }
