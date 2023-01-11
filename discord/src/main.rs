@@ -78,13 +78,11 @@ async fn main() {
             .expect("Error registering Ctrl+C handler")
     };
 
+    let mut data = discord_client.data.write().await;
+
     let (sender, receiver) = mpsc::channel::<String>();
 
-    let sender = Mutex::new(Some(Dispatcher::new(sender)));
-
-    let mut data = discord_client.data.write().await;
-    
-    data.insert::<Dispatcher>(sender);
+    data.insert::<Dispatcher>(Mutex::new(Some(Dispatcher::new(sender))));
     drop(data);
 
     let receiver = Arc::new(Mutex::new(receiver));

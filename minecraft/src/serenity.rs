@@ -3,13 +3,6 @@ use serenity::framework::standard::macros::command;
 use serenity::model::channel::Message;
 use serenity::{framework::standard::CommandResult, prelude::*};
 
-#[command]
-pub async fn test(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "idk").await.unwrap();
-
-    Ok(())
-}
-
 // TODO: An attribute macro that will decorate a fn and supply it with the Dispatcher
 #[command]
 pub async fn start(ctx: &Context, msg: &Message) -> CommandResult {

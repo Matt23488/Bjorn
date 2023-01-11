@@ -35,7 +35,7 @@ impl Client {
         client
     }
 
-    pub fn shutdown(mut self) {
+    pub fn shutdown(&mut self) {
         self.ws.take().unwrap().shutdown();
     }
 }

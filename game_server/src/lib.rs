@@ -1,5 +1,5 @@
 pub trait Server {
-    fn build() -> Result<Self, String>
+    fn build(dir: String) -> Result<Self, String>
     where
         Self: Sized;
     fn start(&mut self) -> Result<(), String>;

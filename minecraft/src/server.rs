@@ -41,20 +41,12 @@ impl MinecraftServer {
 }
 
 impl Server for MinecraftServer {
-    fn build() -> Result<Self, String> {
-        let mut start_command = process::Command::new(
-            "java"
-        );
+    fn build(dir: String) -> Result<Self, String> {
+        let mut start_command = process::Command::new("java");
 
         start_command
-            .current_dir(r#"C:\Minecraft"#)
-            .args([
-                "-Xmx1024M",
-                "-Xms1024M",
-                "-jar",
-                "server.jar",
-                "nogui",
-            ])
+            .current_dir(dir)
+            .args(["-Xmx1024M", "-Xms1024M", "-jar", "server.jar", "nogui"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped());
 
