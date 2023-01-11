@@ -5,7 +5,7 @@ mod server;
 pub use server::MinecraftServer;
 
 #[cfg(feature = "serenity")]
-pub mod discord;
+pub mod serenity;
 
 pub enum Message {
     Unknown,

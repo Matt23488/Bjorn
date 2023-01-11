@@ -3,3 +3,9 @@ pub trait Server {
     fn start(&mut self) -> Result<(), String>;
     fn stop(&mut self) -> Result<(), String>;
 }
+
+#[cfg(feature = "serenity")]
+mod serenity;
+
+#[cfg(feature = "serenity")]
+pub use crate::serenity::*;

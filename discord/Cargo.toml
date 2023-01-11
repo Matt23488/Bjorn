@@ -14,3 +14,4 @@ serde = { version = "1.0", features = ["derive"] }
 config = { path = "../config" }
 ws_protocol = { path = "../ws_protocol", features = ["serenity"] }
 minecraft = { path = "../minecraft", features = ["serenity"] }
+game_server = { path = "../game_server", features = ["serenity"] }

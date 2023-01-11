@@ -401,6 +401,7 @@ name = "discord"
 version = "0.1.0"
 dependencies = [
  "config",
+ "game_server",
  "minecraft",
  "serde",
  "serde_json",
@@ -588,6 +589,9 @@ dependencies = [
 [[package]]
 name = "game_server"
 version = "0.1.0"
+dependencies = [
+ "serenity",
+]
 
 [[package]]
 name = "games"

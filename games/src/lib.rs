@@ -14,12 +14,20 @@ pub fn run() {
 
     client.on_message(move |message: minecraft::Message| match message {
         minecraft::Message::Start => {
-            minecraft.lock().unwrap().start().unwrap();
+            if let Err(e) = minecraft.lock().unwrap().start() {
+                eprintln!("Error starting server: {e}");
+            }
         }
         minecraft::Message::Stop => {
-            minecraft.lock().unwrap().stop().unwrap();
+            if let Err(e) = minecraft.lock().unwrap().stop() {
+                eprintln!("Error stopping server: {e}");
+            }
         }
-        minecraft::Message::Save => (),
+        minecraft::Message::Save => {
+            if let Err(e) = minecraft.lock().unwrap().save() {
+                eprintln!("Error saving world: {e}");
+            }
+        },
         minecraft::Message::Say(message) => {
             if let Err(e) = minecraft.lock().unwrap().say(message) {
                 eprintln!("Error sending message to server: {e}");
