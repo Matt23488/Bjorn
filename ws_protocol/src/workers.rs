@@ -3,8 +3,7 @@ use std::{
     net::TcpStream,
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc,
-        Arc, Mutex,
+        mpsc, Arc, Mutex,
     },
     thread::{self, JoinHandle},
     time::Duration,
@@ -120,11 +119,17 @@ pub fn spawn_client_worker(
 
 type BjornWsServer = Server<NoTlsAcceptor>;
 
-pub fn spawn_server_worker(server: BjornWsServer, cancellation_token: Arc<AtomicBool>) -> JoinHandle<()> {
+pub fn spawn_server_worker(
+    server: BjornWsServer,
+    cancellation_token: Arc<AtomicBool>,
+) -> JoinHandle<()> {
     let client_map = Arc::new(Mutex::new(HashMap::new()));
 
     thread::spawn(move || {
-        for connection in server.filter_map(Result::ok).take_while(|_| !cancellation_token.load(Ordering::SeqCst)) {
+        for connection in server
+            .filter_map(Result::ok)
+            .take_while(|_| !cancellation_token.load(Ordering::SeqCst))
+        {
             let client_map = client_map.clone();
             thread::spawn(move || {
                 let mut client = connection.accept().unwrap();
@@ -191,7 +196,11 @@ pub fn spawn_server_worker(server: BjornWsServer, cancellation_token: Arc<Atomic
                 let sender = client_map.lock().unwrap().remove(&client_type).unwrap();
                 let reason = close_reason.unwrap_or(String::from("No reason specified."));
                 println!("Connection closed: {reason}");
-                sender.lock().unwrap().send_message(&Message::close_because(1000, reason)).unwrap();
+                sender
+                    .lock()
+                    .unwrap()
+                    .send_message(&Message::close_because(1000, reason))
+                    .unwrap();
             });
         }
     })

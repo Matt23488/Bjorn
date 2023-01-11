@@ -1,7 +1,7 @@
 // use std::collections::HashMap;
+use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::mpsc;
 
 // use config::Config;
 use config::Environment;
@@ -51,10 +51,10 @@ async fn main() {
     };
 
     let framework = StandardFramework::new()
-        .configure(|c| c
-            .prefix(config.prefix)
-            .allowed_channels(vec![ChannelId(config.channel)].into_iter().collect())
-        )
+        .configure(|c| {
+            c.prefix(config.prefix)
+                .allowed_channels(vec![ChannelId(config.channel)].into_iter().collect())
+        })
         .group(&GENERAL_GROUP);
 
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;

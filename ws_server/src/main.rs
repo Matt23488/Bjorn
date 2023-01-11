@@ -1,6 +1,4 @@
-
-
-use std::{sync::{Arc, Mutex}};
+use std::sync::{Arc, Mutex};
 
 use ws_protocol::BjornWsServer;
 
@@ -18,8 +16,5 @@ fn main() {
     //     }).expect("Error setting Ctrl+C handler");
     // }
 
-    server
-        .lock()
-        .expect("lock to be valid")
-        .wait();
+    server.lock().expect("lock to be valid").wait();
 }

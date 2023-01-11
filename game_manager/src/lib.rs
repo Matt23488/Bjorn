@@ -1,4 +1,7 @@
-use std::{sync::{Mutex, Arc, atomic::{AtomicBool, Ordering}}};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 
 use game_server::Server;
 use minecraft::MinecraftServer;
@@ -7,7 +10,9 @@ mod ws;
 use ws::{Client, OnMessage};
 
 pub fn run() {
-    let minecraft = Arc::new(Mutex::new(MinecraftServer::build().expect("build to succeed")));
+    let minecraft = Arc::new(Mutex::new(
+        MinecraftServer::build().expect("build to succeed"),
+    ));
 
     // create ws client and listen for messages
     let mut client = Client::new();
@@ -27,7 +32,7 @@ pub fn run() {
             if let Err(e) = minecraft.lock().unwrap().save() {
                 eprintln!("Error saving world: {e}");
             }
-        },
+        }
         minecraft::Message::Say(message) => {
             if let Err(e) = minecraft.lock().unwrap().say(message) {
                 eprintln!("Error sending message to server: {e}");
@@ -52,7 +57,8 @@ pub fn run() {
                 client.shutdown();
             }
             running.store(false, Ordering::SeqCst);
-        }).expect("ctrlc handler to work");
+        })
+        .expect("ctrlc handler to work");
     }
 
     while running.load(Ordering::SeqCst) {}

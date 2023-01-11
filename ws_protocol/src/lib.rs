@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Sender, self};
+use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
@@ -62,7 +62,6 @@ impl From<&OwnedMessage> for BjornWsClientType {
         }
     }
 }
-
 
 type Callback<T> = dyn FnMut(T) + Send + 'static;
 pub struct OptionCallback<T>(Mutex<Option<Box<Callback<T>>>>);

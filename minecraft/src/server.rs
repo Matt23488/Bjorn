@@ -1,4 +1,7 @@
-use std::{process::{ChildStdout, ChildStdin, Child, Stdio, self, Command}, io::Write};
+use std::{
+    io::Write,
+    process::{self, Child, ChildStdin, ChildStdout, Command, Stdio},
+};
 
 use game_server::Server;
 
@@ -27,7 +30,11 @@ impl MinecraftServer {
             return Err("Server not started".into());
         }
 
-        self.stdin.as_mut().expect("stdin to be Some").write_all(bytes).expect("write_all to succeed");
+        self.stdin
+            .as_mut()
+            .expect("stdin to be Some")
+            .write_all(bytes)
+            .expect("write_all to succeed");
 
         Ok(())
     }
@@ -35,11 +42,19 @@ impl MinecraftServer {
 
 impl Server for MinecraftServer {
     fn build() -> Result<Self, String> {
-        let mut start_command = process::Command::new(r#"C:\Program Files\Eclipse Adoptium\jre-19.0.1.10-hotspot\bin\java.exe"#);
+        let mut start_command = process::Command::new(
+            r#"C:\Program Files\Eclipse Adoptium\jre-19.0.1.10-hotspot\bin\java.exe"#,
+        );
 
         start_command
             .current_dir(r#"C:\Minecraft"#)
-            .args(["-Xmx1024M", "-Xms1024M", "-jar", r#"C:\Minecraft\server.jar"#])//, "nogui"])
+            .args([
+                "-Xmx1024M",
+                "-Xms1024M",
+                "-jar",
+                r#"C:\Minecraft\server.jar"#,
+                "nogui",
+            ])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped());
 
@@ -61,8 +76,10 @@ impl Server for MinecraftServer {
             Err(e) => return Err(e.to_string()),
         };
 
-        self.stdin.replace(child.stdin.take().expect("stdin to be piped"));
-        self.stdout.replace(child.stdout.take().expect("stdout to be piped"));
+        self.stdin
+            .replace(child.stdin.take().expect("stdin to be piped"));
+        self.stdout
+            .replace(child.stdout.take().expect("stdout to be piped"));
         self.minecraft.replace(child);
 
         Ok(())

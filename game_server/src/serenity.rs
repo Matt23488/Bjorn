@@ -1,4 +1,7 @@
-use std::sync::{Mutex, mpsc::{Sender, SendError}};
+use std::sync::{
+    mpsc::{SendError, Sender},
+    Mutex,
+};
 
 use serenity::prelude::*;
 
