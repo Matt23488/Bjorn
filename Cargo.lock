@@ -587,20 +587,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "game_server"
-version = "0.1.0"
-dependencies = [
- "serenity",
-]
-
-[[package]]
-name = "games"
+name = "game_manager"
 version = "0.1.0"
 dependencies = [
  "ctrlc",
  "game_server",
  "minecraft",
  "ws_protocol",
+]
+
+[[package]]
+name = "game_server"
+version = "0.1.0"
+dependencies = [
+ "serenity",
 ]
 
 [[package]]
