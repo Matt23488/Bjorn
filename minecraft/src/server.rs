@@ -43,7 +43,7 @@ impl MinecraftServer {
 impl Server for MinecraftServer {
     fn build() -> Result<Self, String> {
         let mut start_command = process::Command::new(
-            r#"C:\Program Files\Eclipse Adoptium\jre-19.0.1.10-hotspot\bin\java.exe"#,
+            "java"
         );
 
         start_command
@@ -52,7 +52,7 @@ impl Server for MinecraftServer {
                 "-Xmx1024M",
                 "-Xms1024M",
                 "-jar",
-                r#"C:\Minecraft\server.jar"#,
+                "server.jar",
                 "nogui",
             ])
             .stdin(Stdio::piped())
