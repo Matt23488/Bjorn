@@ -1,9 +1,12 @@
 [workspace]
 
 members = [
-    "discord",
     "config",
+    "discord",
+    "game_server",
+    "games",
+    "minecraft",
     "web",
+    "ws_protocol",
     "ws_server",
-    "ws_protocol"
 ]

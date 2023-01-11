@@ -401,6 +401,7 @@ name = "discord"
 version = "0.1.0"
 dependencies = [
  "config",
+ "minecraft",
  "serde",
  "serde_json",
  "serenity",
@@ -582,6 +583,20 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "game_server"
+version = "0.1.0"
+
+[[package]]
+name = "games"
+version = "0.1.0"
+dependencies = [
+ "ctrlc",
+ "game_server",
+ "minecraft",
+ "ws_protocol",
 ]
 
 [[package]]
@@ -1148,6 +1163,14 @@ checksum = "4192263c238a5f0d0c6bfd21f336a313a4ce1c450542449ca191bb657b4642ef"
 dependencies = [
  "mime 0.3.16",
  "unicase 2.6.0",
+]
+
+[[package]]
+name = "minecraft"
+version = "0.1.0"
+dependencies = [
+ "game_server",
+ "serenity",
 ]
 
 [[package]]
@@ -2897,6 +2920,7 @@ dependencies = [
 name = "ws_protocol"
 version = "0.1.0"
 dependencies = [
+ "minecraft",
  "serenity",
  "websocket",
 ]

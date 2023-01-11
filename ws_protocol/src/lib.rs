@@ -19,12 +19,13 @@ pub enum BjornWsClientType {
     Invalid,
     Discord,
     Web,
-    // TODO: Minecraft, Valheim
+    ServerManager,
 }
 
 const CLIENT_TYPE_INVALID: &str = "Invalid client type";
 const CLIENT_TYPE_DISCORD: &str = "discord";
 const CLIENT_TYPE_WEB: &str = "web";
+const CLIENT_TYPE_SERVER_MANAGER: &str = "server manager";
 
 impl BjornWsClientType {
     fn as_str(self) -> &'static str {
@@ -32,19 +33,7 @@ impl BjornWsClientType {
             BjornWsClientType::Invalid => CLIENT_TYPE_INVALID,
             BjornWsClientType::Discord => CLIENT_TYPE_DISCORD,
             BjornWsClientType::Web => CLIENT_TYPE_WEB,
-        }
-    }
-}
-
-impl From<&BjornWsClientType> for OwnedMessage {
-    fn from(client: &BjornWsClientType) -> Self {
-        match client {
-            BjornWsClientType::Invalid => OwnedMessage::Close(Some(CloseData {
-                status_code: 1,
-                reason: String::from(CLIENT_TYPE_INVALID),
-            })),
-            BjornWsClientType::Discord => OwnedMessage::Text(String::from(CLIENT_TYPE_DISCORD)),
-            BjornWsClientType::Web => OwnedMessage::Text(String::from(CLIENT_TYPE_WEB)),
+            BjornWsClientType::ServerManager => CLIENT_TYPE_SERVER_MANAGER,
         }
     }
 }
@@ -55,6 +44,7 @@ impl From<BjornWsClientType> for Message<'_> {
             BjornWsClientType::Invalid => Message::close_because(1, CLIENT_TYPE_INVALID),
             BjornWsClientType::Discord => Message::text(CLIENT_TYPE_DISCORD),
             BjornWsClientType::Web => Message::text(CLIENT_TYPE_WEB),
+            BjornWsClientType::ServerManager => Message::text(CLIENT_TYPE_SERVER_MANAGER),
         }
     }
 }
@@ -65,9 +55,40 @@ impl From<&OwnedMessage> for BjornWsClientType {
             OwnedMessage::Text(text) => match text.as_str() {
                 CLIENT_TYPE_DISCORD => BjornWsClientType::Discord,
                 CLIENT_TYPE_WEB => BjornWsClientType::Web,
+                CLIENT_TYPE_SERVER_MANAGER => BjornWsClientType::ServerManager,
                 _ => BjornWsClientType::Invalid,
             },
             _ => BjornWsClientType::Invalid,
+        }
+    }
+}
+
+
+type Callback<T> = dyn FnMut(T) + Send + 'static;
+pub struct OptionCallback<T>(Mutex<Option<Box<Callback<T>>>>);
+
+impl<T> OptionCallback<T> {
+    fn none() -> OptionCallback<T> {
+        OptionCallback(Mutex::new(None))
+    }
+
+    fn _some<F>(callback: F) -> OptionCallback<T>
+    where
+        F: FnMut(T) + Send + 'static,
+    {
+        OptionCallback(Mutex::new(Some(Box::new(callback))))
+    }
+
+    fn replace<F>(&self, callback: F)
+    where
+        F: FnMut(T) + Send + 'static,
+    {
+        self.0.lock().unwrap().replace(Box::new(callback));
+    }
+
+    fn execute(&self, arg: T) {
+        if let Some(callback) = self.0.lock().unwrap().as_mut() {
+            callback(arg);
         }
     }
 }
@@ -77,6 +98,7 @@ pub struct BjornWsClient {
     cancellation_token: Arc<AtomicBool>,
     ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>,
     sender: Arc<Mutex<Option<Sender<String>>>>,
+    message_callback: Arc<OptionCallback<String>>,
 }
 
 impl BjornWsClient {
@@ -85,12 +107,15 @@ impl BjornWsClient {
         let ws_client = Arc::new(Mutex::new(None));
         let (sender, receiver) = mpsc::channel::<String>();
 
+        let message_callback = Arc::new(OptionCallback::none());
+
         let thread = spawn_client_worker(
             client_type,
             cancellation_token.clone(),
             ws_client.clone(),
             sender.clone(),
             receiver,
+            message_callback.clone(),
         );
 
         BjornWsClient {
@@ -98,7 +123,15 @@ impl BjornWsClient {
             cancellation_token,
             ws_client,
             sender: Arc::new(Mutex::new(Some(sender))),
+            message_callback,
         }
+    }
+
+    pub fn on_message<F>(&mut self, callback: F)
+    where
+        F: FnMut(String) + Send + 'static,
+    {
+        self.message_callback.replace(callback);
     }
 
     pub fn send_message<S: Into<String>>(&self, message: S) -> Result<(), String> {
@@ -113,6 +146,29 @@ impl BjornWsClient {
             _ => Err("Sender closed".into()),
         }
     }
+
+    pub fn shutdown(mut self) {
+        if let Some(thread) = self.thread.take() {
+            self.cancellation_token.store(true, Ordering::SeqCst);
+            if let Some(ws_client) = self.ws_client.lock().unwrap().as_mut() {
+                ws_client
+                    .send_message(&OwnedMessage::from(ShutdownMessage("shutdown() called")))
+                    .unwrap();
+            }
+            thread.join().unwrap();
+        }
+    }
+
+    pub fn wait(&mut self) {
+        if let Some(thread) = self.thread.take() {
+            thread.join().unwrap();
+        }
+    }
+}
+
+pub enum GameServerMessage {
+    Start,
+    Stop,
 }
 
 #[cfg(feature = "serenity")]
@@ -134,39 +190,17 @@ impl From<ShutdownMessage> for OwnedMessage {
     }
 }
 
-impl BjornWsClient {
-    pub fn shutdown(mut self) {
-        if let Some(thread) = self.thread.take() {
-            drop(self.sender.lock().unwrap().take());
-            self.cancellation_token.store(true, Ordering::SeqCst);
-            if let Some(ws_client) = self.ws_client.lock().unwrap().as_mut() {
-                ws_client
-                    .send_message(&OwnedMessage::from(ShutdownMessage("shutdown() called")))
-                    .unwrap();
-            }
-            thread.join().unwrap();
-        }
-    }
-}
-
-type MessageCallback = Arc<Mutex<dyn Fn(String) + Send + 'static>>;
-
 pub struct BjornWsServer {
     connection_thread: Option<JoinHandle<()>>,
     cancellation_token: Arc<AtomicBool>,
 }
 
 impl BjornWsServer {
-    pub fn new<F>(message_callback: F) -> Self
-    where
-        F: Fn(String) + Send + 'static,
-    {
+    pub fn new() -> Self {
         let server = Server::bind("0.0.0.0:42069").unwrap();
 
-        let message_callback = Arc::new(Mutex::new(message_callback));
-
         let cancellation_token = Arc::new(AtomicBool::new(false));
-        let connection_thread = spawn_server_worker(server, message_callback, cancellation_token.clone());
+        let connection_thread = spawn_server_worker(server, cancellation_token.clone());
 
         BjornWsServer {
             connection_thread: Some(connection_thread),

@@ -13,3 +13,4 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 config = { path = "../config" }
 ws_protocol = { path = "../ws_protocol", features = ["serenity"] }
+minecraft = { path = "../minecraft", features = ["serenity"] }

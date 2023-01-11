@@ -16,7 +16,7 @@ use websocket::{
     ClientBuilder, CloseData, Message, OwnedMessage, WebSocketError,
 };
 
-use crate::{BjornWsClientType, MessageCallback};
+use crate::{BjornWsClientType, OptionCallback};
 
 pub fn spawn_client_worker(
     client_type: BjornWsClientType,
@@ -24,6 +24,7 @@ pub fn spawn_client_worker(
     ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>,
     message_sender: mpsc::Sender<String>,
     message_receiver: mpsc::Receiver<String>,
+    message_callback: Arc<OptionCallback<String>>,
 ) -> JoinHandle<()> {
     let message_receiver = Arc::new(Mutex::new(message_receiver));
     thread::spawn(move || {
@@ -91,9 +92,11 @@ pub fn spawn_client_worker(
             for message in receiver.incoming_messages() {
                 match message {
                     Ok(OwnedMessage::Close(data)) => {
+                        println!("closing");
                         close_reason = data.map(|CloseData { reason, .. }| reason);
                         break;
                     }
+                    Ok(OwnedMessage::Text(text)) => message_callback.execute(text),
                     Ok(message) => println!("Received: {message:?}"),
                     Err(WebSocketError::NoDataAvailable) => (),
                     Err(err) => {
@@ -108,8 +111,6 @@ pub fn spawn_client_worker(
                 close_reason.unwrap_or(String::from("No reason specified."))
             );
 
-            ws_client.lock().unwrap().take();
-            receiver.shutdown().unwrap();
             cancellation_token.store(true, Ordering::SeqCst);
             message_sender.send("!@#$QUIT$#@!".into()).unwrap();
             ws_message_loop.join().unwrap();
@@ -119,13 +120,12 @@ pub fn spawn_client_worker(
 
 type BjornWsServer = Server<NoTlsAcceptor>;
 
-pub fn spawn_server_worker(server: BjornWsServer, message_callback: MessageCallback, cancellation_token: Arc<AtomicBool>) -> JoinHandle<()> {
+pub fn spawn_server_worker(server: BjornWsServer, cancellation_token: Arc<AtomicBool>) -> JoinHandle<()> {
     let client_map = Arc::new(Mutex::new(HashMap::new()));
 
     thread::spawn(move || {
         for connection in server.filter_map(Result::ok).take_while(|_| !cancellation_token.load(Ordering::SeqCst)) {
             let client_map = client_map.clone();
-            let message_callback = message_callback.clone();
             thread::spawn(move || {
                 let mut client = connection.accept().unwrap();
 
@@ -161,6 +161,7 @@ pub fn spawn_server_worker(server: BjornWsServer, message_callback: MessageCallb
                 for message in receiver.incoming_messages() {
                     match message {
                         Ok(OwnedMessage::Close(data)) => {
+                            println!("{client_type:?} closing");
                             close_reason = data.map(|CloseData { reason, .. }| reason);
                             break;
                         }
@@ -169,7 +170,18 @@ pub fn spawn_server_worker(server: BjornWsServer, message_callback: MessageCallb
                             .unwrap()
                             .send_message(&Message::pong(data))
                             .unwrap(),
-                        Ok(OwnedMessage::Text(text)) => message_callback.lock().unwrap()(text),
+                        Ok(msg @ OwnedMessage::Text(_)) => {
+                            println!("Message from {client_type:?}: {msg:?}");
+                            client_map
+                                .lock()
+                                .unwrap()
+                                .iter()
+                                .filter(|(ct, _)| **ct != client_type)
+                                .for_each(|(ct, sender)| {
+                                    println!("  dispatching to {ct:?}");
+                                    sender.lock().unwrap().send_message(&msg).unwrap();
+                                });
+                        }
                         Ok(message) => println!("Received from {client_type:?}: {message:?}"),
                         Err(WebSocketError::NoDataAvailable) => (),
                         Err(e) => println!("{e}"),
@@ -177,17 +189,14 @@ pub fn spawn_server_worker(server: BjornWsServer, message_callback: MessageCallb
                 }
 
                 let sender = client_map.lock().unwrap().remove(&client_type).unwrap();
-                println!(
-                    "Connection closed: {}",
-                    close_reason.unwrap_or(String::from("No reason specified."))
-                );
-                sender.lock().unwrap().shutdown().unwrap();
+                let reason = close_reason.unwrap_or(String::from("No reason specified."));
+                println!("Connection closed: {reason}");
+                sender.lock().unwrap().send_message(&Message::close_because(1000, reason)).unwrap();
             });
         }
     })
 }
 
 fn kill_client(mut client: Client<TcpStream>, reason: &str) {
-    let _ = client.send_message(&Message::close_because(u16::MAX, reason));
-    client.shutdown().unwrap();
+    let _ = client.send_message(&Message::close_because(1000, reason));
 }

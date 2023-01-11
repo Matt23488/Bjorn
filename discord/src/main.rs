@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
-use config::Config;
+// use config::Config;
 use config::Environment;
+use serde::Deserialize;
+use serde::Serialize;
 use serenity::async_trait;
 use serenity::framework::standard::macros::{command, group};
 use serenity::framework::standard::{CommandResult, StandardFramework};
 use serenity::model::channel::Message;
+use serenity::model::prelude::ChannelId;
 use serenity::prelude::*;
 
 use serenity_ctrlc::Disconnector;
@@ -14,11 +17,19 @@ use serenity_ctrlc::Ext;
 use ws_protocol::BjornWsClient;
 use ws_protocol::BjornWsClientType;
 
+use minecraft::discord::*;
+
 #[group]
-#[commands(ping, ws)]
+#[commands(ping, ws, test)]
 struct General;
 
 struct Handler;
+
+#[derive(Serialize, Deserialize)]
+struct Config {
+    prefix: String,
+    channel: u64,
+}
 
 #[async_trait]
 impl EventHandler for Handler {}
@@ -35,7 +46,10 @@ async fn main() {
     };
 
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix(config.prefix()))
+        .configure(|c| c
+            .prefix(config.prefix)
+            .allowed_channels(vec![ChannelId(config.channel)].into_iter().collect())
+        )
         .group(&GENERAL_GROUP);
 
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
@@ -50,13 +64,14 @@ async fn main() {
                 let ws_client = ws_client.clone();
                 async move {
                     println!("Ctrl+C detected");
-                    println!("Disconnecting Discord bot");
-                    Disconnector::disconnect_some(dc).await;
 
                     println!("Closing WebSocket client");
                     if let Some(client) = ws_client.lock().unwrap().take() {
                         client.shutdown();
                     }
+
+                    println!("Disconnecting Discord bot");
+                    Disconnector::disconnect_some(dc).await;
                 }
             })
             .expect("Error registering Ctrl+C handler")
