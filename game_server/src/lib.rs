@@ -1,4 +1,4 @@
-pub trait Server {
+pub trait ServerProcess {
     fn build(dir: String) -> Result<Self, String>
     where
         Self: Sized;

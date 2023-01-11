@@ -1,4 +1,5 @@
-use game_server::Server;
+use game_server::ServerProcess;
+use minecraft::MinecraftServerProcess;
 
 use super::{GameServer, GameServerBuilder};
 use crate::ws::OnMessage;
@@ -14,7 +15,7 @@ impl MinecraftConfig {
 }
 
 pub struct MinecraftServer {
-    server_obj: Option<minecraft::MinecraftServer>,
+    process: Option<MinecraftServerProcess>,
 }
 
 impl GameServerBuilder for MinecraftServer {
@@ -30,10 +31,10 @@ impl GameServerBuilder for MinecraftServer {
             .ok()
     }
 
-    fn build(config: Self::Configuration) -> Box<dyn super::GameServer + Send + Sync> {
+    fn build(config: Self::Configuration) -> Box<dyn GameServer + Send + Sync> {
         Box::new(MinecraftServer {
-            server_obj: Some(
-                minecraft::MinecraftServer::build(config.server_path)
+            process: Some(
+                MinecraftServerProcess::build(config.server_path)
                     .expect("Minecraft environment to be configured properly"),
             ),
         })
@@ -42,7 +43,7 @@ impl GameServerBuilder for MinecraftServer {
 
 impl GameServer for MinecraftServer {
     fn register_on_message_handler(&mut self, ws: &mut crate::ws::Client) {
-        let mut minecraft = self.server_obj.take().unwrap();
+        let mut minecraft = self.process.take().unwrap();
         ws.on_message(move |message: minecraft::Message| match message {
             minecraft::Message::Start => {
                 if let Err(e) = minecraft.start() {

@@ -3,16 +3,16 @@ use std::{
     process::{self, Child, ChildStdin, ChildStdout, Command, Stdio},
 };
 
-use game_server::Server;
+use game_server::ServerProcess;
 
-pub struct MinecraftServer {
+pub struct MinecraftServerProcess {
     start_command: Command,
     minecraft: Option<Child>,
     stdin: Option<ChildStdin>,
     stdout: Option<ChildStdout>,
 }
 
-impl MinecraftServer {
+impl MinecraftServerProcess {
     pub fn save(&mut self) -> Result<(), String> {
         self.send_to_stdin(b"save-all\n")
     }
@@ -40,7 +40,7 @@ impl MinecraftServer {
     }
 }
 
-impl Server for MinecraftServer {
+impl ServerProcess for MinecraftServerProcess {
     fn build(dir: String) -> Result<Self, String> {
         let mut start_command = process::Command::new("java");
 
@@ -50,7 +50,7 @@ impl Server for MinecraftServer {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped());
 
-        Ok(MinecraftServer {
+        Ok(MinecraftServerProcess {
             start_command,
             minecraft: None,
             stdin: None,

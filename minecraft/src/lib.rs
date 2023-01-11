@@ -2,7 +2,7 @@
 mod server;
 
 #[cfg(feature = "server")]
-pub use server::MinecraftServer;
+pub use server::MinecraftServerProcess;
 
 #[cfg(feature = "serenity")]
 pub mod serenity;
