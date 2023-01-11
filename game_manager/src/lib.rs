@@ -1,6 +1,5 @@
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
+    Arc, Mutex, mpsc,
 };
 
 use game_server::Server;
@@ -47,19 +46,18 @@ pub fn run() {
     });
 
     let mut client = Some(client);
-    let running = Arc::new(AtomicBool::new(true));
-    {
-        let running = running.clone();
-        ctrlc::set_handler(move || {
-            println!("^C");
+    let (sender, receiver) = mpsc::channel();
 
-            if let Some(client) = client.take() {
-                client.shutdown();
-            }
-            running.store(false, Ordering::SeqCst);
-        })
-        .expect("ctrlc handler to work");
-    }
+    ctrlc::set_handler(move || {
+        println!("^C");
 
-    while running.load(Ordering::SeqCst) {}
+        if let Some(client) = client.take() {
+            client.shutdown();
+        }
+
+        sender.send(()).unwrap_or_default();
+    })
+    .expect("ctrlc handler to work");
+
+    receiver.recv().unwrap_or_default();
 }
