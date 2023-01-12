@@ -603,6 +603,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "game_server_macro"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1173,6 +1181,7 @@ name = "minecraft"
 version = "0.1.0"
 dependencies = [
  "game_server",
+ "game_server_macro",
  "serenity",
 ]
 

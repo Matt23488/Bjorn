@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 serenity = { version = "0.11.5", features = ["client", "model", "gateway", "rustls_backend"], optional = true }
 game_server = { path = "../game_server" }
+game_server_macro = { path = "../game_server_macro" }
 
 [features]
 server = []

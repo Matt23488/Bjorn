@@ -20,7 +20,7 @@ use ws_protocol::BjornWsClientType;
 use minecraft::serenity::*;
 
 #[group]
-#[commands(start, stop, save, say, tp)] // TODO: Macro to take in `General` and add this macro
+#[commands(start, stop, save, say, tp)] // TODO: Macro to add commands in?
 struct General;
 
 struct Handler;

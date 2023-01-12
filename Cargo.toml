@@ -4,6 +4,7 @@ members = [
     "config",
     "discord",
     "game_server",
+    "game_server_macro",
     "game_manager",
     "minecraft",
     "web",

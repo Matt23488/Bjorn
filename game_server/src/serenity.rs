@@ -12,7 +12,7 @@ impl Dispatcher {
         Dispatcher(sender)
     }
 
-    pub fn dispatch(&self, message: String) -> Result<(), SendError<String>> {
+    pub fn dispatch(&self, message: String) -> DispatchResult {
         self.0.send(message)
     }
 }
@@ -20,3 +20,5 @@ impl Dispatcher {
 impl TypeMapKey for Dispatcher {
     type Value = Mutex<Option<Dispatcher>>;
 }
+
+pub type DispatchResult = Result<(), SendError<String>>;
