@@ -1,15 +1,14 @@
+use std::env;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use config::Environment;
 use game_server::Dispatcher;
 use serde::Deserialize;
 use serde::Serialize;
 use serenity::async_trait;
 use serenity::framework::standard::macros::group;
 use serenity::framework::standard::StandardFramework;
-use serenity::model::prelude::ChannelId;
 use serenity::prelude::*;
 
 use serenity_ctrlc::Disconnector;
@@ -41,22 +40,19 @@ async fn main() {
         BjornWsClientType::Discord,
     ))));
 
-    let (config, secrets) = match Environment::load::<Config>("config.json", "../secrets.json") {
-        Some(env) => env,
-        None => return,
+    let (prefix, bot_token) = match (env::var("BJORN_DISCORD_PREFIX"), env::var("BJORN_DISCORD_TOKEN")) {
+        (Ok(prefix), Ok(token)) => (prefix, token),
+        _ => panic!("Discord environment not configured"),
     };
 
     let framework = StandardFramework::new()
-        .configure(|c| {
-            c.prefix(config.prefix)
-                .allowed_channels(vec![ChannelId(config.channel)].into_iter().collect())
-        })
+        .configure(|c| c.prefix(prefix))
         .group(&GENERAL_GROUP);
 
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
     let mut discord_client = {
         let ws_client = ws_client.clone();
-        Client::builder(secrets.bot_token(), intents)
+        Client::builder(bot_token, intents)
             .event_handler(Handler)
             .framework(framework)
             .await
