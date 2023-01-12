@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 serenity = { version = "0.11.5", features = ["client", "model", "gateway", "rustls_backend"], optional = true }
+ws_protocol = { path = "../ws_protocol", optional = true }
 
 [features]
 serenity = ["dep:serenity"]
+ws_protocol = ["dep:ws_protocol"]

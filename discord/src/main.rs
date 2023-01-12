@@ -14,10 +14,7 @@ use serenity::prelude::*;
 use serenity_ctrlc::Disconnector;
 use serenity_ctrlc::Ext;
 
-use ws_protocol::BjornWsClient;
-use ws_protocol::BjornWsClientType;
-
-use minecraft::serenity::*;
+use minecraft::*;
 
 #[group]
 #[commands(start, stop, save, say, tp)] // TODO: Macro to add commands in?
@@ -36,14 +33,17 @@ impl EventHandler for Handler {}
 
 #[tokio::main]
 async fn main() {
-    let ws_client = Arc::new(Mutex::new(Some(BjornWsClient::new(
-        BjornWsClientType::Discord,
-    ))));
-
-    let (prefix, bot_token) = match (env::var("BJORN_DISCORD_PREFIX"), env::var("BJORN_DISCORD_TOKEN")) {
+    let (prefix, bot_token) = match (
+        env::var("BJORN_DISCORD_PREFIX"),
+        env::var("BJORN_DISCORD_TOKEN"),
+    ) {
         (Ok(prefix), Ok(token)) => (prefix, token),
         _ => panic!("Discord environment not configured"),
     };
+
+    let ws_client = Arc::new(Mutex::new(Some(ws_protocol::WsClient::new(
+        ws_protocol::WsClientType::Discord,
+    ))));
 
     let framework = StandardFramework::new()
         .configure(|c| c.prefix(prefix))

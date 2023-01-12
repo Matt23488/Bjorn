@@ -11,3 +11,9 @@ mod serenity;
 
 #[cfg(feature = "serenity")]
 pub use crate::serenity::*;
+
+#[cfg(feature = "ws_protocol")]
+mod ws_protocol;
+
+#[cfg(feature = "ws_protocol")]
+pub use crate::ws_protocol::*;

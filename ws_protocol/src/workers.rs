@@ -15,10 +15,10 @@ use websocket::{
     ClientBuilder, CloseData, Message, OwnedMessage, WebSocketError,
 };
 
-use crate::{BjornWsClientType, OptionCallback};
+use crate::{OptionCallback, WsClientType};
 
 pub fn spawn_client_worker(
-    client_type: BjornWsClientType,
+    client_type: WsClientType,
     cancellation_token: Arc<AtomicBool>,
     ws_client: Arc<Mutex<Option<Writer<TcpStream>>>>,
     message_sender: mpsc::Sender<String>,
@@ -145,9 +145,9 @@ pub fn spawn_server_worker(
                     }
                 };
 
-                let client_type = BjornWsClientType::from(&message);
+                let client_type = WsClientType::from(&message);
 
-                if let client_type @ BjornWsClientType::Invalid = client_type {
+                if let client_type @ WsClientType::Invalid = client_type {
                     kill_client(client, client_type.as_str());
                     return;
                 }

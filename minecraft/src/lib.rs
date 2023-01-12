@@ -1,17 +1,17 @@
 #[cfg(feature = "server")]
 mod server;
 
-#[cfg(feature = "server")]
-pub use server::MinecraftServerProcess;
+#[cfg(feature = "ws_protocol")]
+mod ws_protocol;
 
 #[cfg(feature = "serenity")]
-pub mod serenity;
+mod serenity;
 
-pub enum Message {
-    Unknown,
-    Start,
-    Stop,
-    Save,
-    Say(String),
-    Tp(String),
-}
+#[cfg(feature = "server")]
+pub use server::*;
+
+#[cfg(feature = "ws_protocol")]
+pub use crate::ws_protocol::*;
+
+#[cfg(feature = "serenity")]
+pub use crate::serenity::*;

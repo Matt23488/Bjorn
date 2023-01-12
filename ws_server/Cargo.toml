@@ -7,4 +7,3 @@ edition = "2021"
 
 [dependencies]
 ws_protocol = { path = "../ws_protocol" }
-ctrlc = "3.2.4"

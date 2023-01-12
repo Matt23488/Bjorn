@@ -1,32 +1,15 @@
-mod minecraft;
 use std::sync::mpsc;
 
-use crate::ws::Client;
-
-pub use self::minecraft::*;
-
-pub trait GameServer {
-    fn register_on_message_handler(&mut self, ws: &mut Client);
-}
-
-pub trait GameServerBuilder {
-    type Configuration;
-
-    fn name() -> &'static str;
-    fn get_config() -> Option<Self::Configuration>;
-    fn build(config: Self::Configuration) -> Box<dyn GameServer + Send + Sync>;
-}
-
-pub struct GameManager(Option<Client>);
+pub struct GameManager(Option<game_server::MessageReceiver>);
 
 impl GameManager {
     pub fn new() -> GameManager {
-        GameManager(Some(Client::new()))
+        GameManager(Some(game_server::MessageReceiver::new()))
     }
 
     pub fn register<T>(&mut self)
     where
-        T: GameServer + GameServerBuilder,
+        T: game_server::GameServer + game_server::GameServerBuilder,
     {
         match T::get_config() {
             Some(config) => {

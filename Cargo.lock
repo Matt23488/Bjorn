@@ -237,14 +237,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "config"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "console_error_panic_hook"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -600,6 +592,7 @@ name = "game_server"
 version = "0.1.0"
 dependencies = [
  "serenity",
+ "ws_protocol",
 ]
 
 [[package]]
@@ -2932,8 +2925,6 @@ dependencies = [
 name = "ws_protocol"
 version = "0.1.0"
 dependencies = [
- "minecraft",
- "serenity",
  "websocket",
 ]
 
@@ -2941,7 +2932,6 @@ dependencies = [
 name = "ws_server"
 version = "0.1.0"
 dependencies = [
- "ctrlc",
  "ws_protocol",
 ]
 

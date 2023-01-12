@@ -1,7 +1,6 @@
 [workspace]
 
 members = [
-    "config",
     "discord",
     "game_server",
     "game_server_macro",

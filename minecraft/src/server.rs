@@ -3,8 +3,6 @@ use std::{
     process::{self, Child, ChildStdin, ChildStdout, Command, Stdio},
 };
 
-use game_server::ServerProcess;
-
 pub struct MinecraftServerProcess {
     start_command: Command,
     minecraft: Option<Child>,
@@ -40,7 +38,7 @@ impl MinecraftServerProcess {
     }
 }
 
-impl ServerProcess for MinecraftServerProcess {
+impl game_server::ServerProcess for MinecraftServerProcess {
     fn build(dir: String) -> Result<Self, String> {
         let mut start_command = process::Command::new("java");
 

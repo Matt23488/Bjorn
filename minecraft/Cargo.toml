@@ -13,3 +13,4 @@ game_server_macro = { path = "../game_server_macro" }
 [features]
 server = []
 serenity = ["dep:serenity"]
+ws_protocol = ["game_server/ws_protocol"]

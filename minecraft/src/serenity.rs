@@ -1,6 +1,6 @@
 use std::env;
 
-use game_server::{Dispatcher, DispatchResult};
+use game_server::{DispatchResult, Dispatcher};
 use game_server_macro::bjorn_command;
 
 #[bjorn_command("Starting Minecraft server...")]

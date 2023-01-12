@@ -7,8 +7,3 @@ edition = "2021"
 
 [dependencies]
 websocket = "0.26.5"
-serenity = { version = "0.11.5", features = ["client", "model", "gateway", "rustls_backend"], optional = true }
-minecraft = { path = "../minecraft" }
-
-[features]
-serenity = ["dep:serenity"]

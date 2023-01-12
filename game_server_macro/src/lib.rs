@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use quote::{quote, format_ident};
+use quote::{format_ident, quote};
 use syn;
 
 #[proc_macro_attribute]
@@ -48,7 +48,7 @@ fn impl_bjorn_command(attr: &syn::LitStr, item: &syn::ItemFn) -> TokenStream {
                     Err(_) => false,
                 }
             };
-        
+
             let user_ok = match env::var("BJORN_MINECRAFT_DISCORD_ADMIN") {
                 Err(_) => false,
                 Ok(admin) => match admin.parse::<u64>() {
@@ -65,7 +65,7 @@ fn impl_bjorn_command(attr: &syn::LitStr, item: &syn::ItemFn) -> TokenStream {
 
             // * NOTE: Using this if let expression lets us ensure that `data` will not be used after any additional awaits.
             // * Otherwise the `command` macro errors.
-            let ws_closed = if let Some(ws) = data.get::<Dispatcher>().unwrap().lock().unwrap().as_ref() {
+            let ws_closed = if let Some(ws) = data.get::<game_server::Dispatcher>().unwrap().lock().unwrap().as_ref() {
                 #call.is_err()
             } else {
                 true
