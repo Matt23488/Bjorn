@@ -15,11 +15,11 @@ impl MinecraftServerProcess {
         self.send_to_stdin(b"save-all\n")
     }
 
-    pub fn say(&mut self, message: String) -> Result<(), String> {
+    pub fn say(&mut self, message: &str) -> Result<(), String> {
         self.send_to_stdin(format!("say {message}\n").as_bytes())
     }
 
-    pub fn tp(&mut self, args: String) -> Result<(), String> {
+    pub fn tp(&mut self, args: &str) -> Result<(), String> {
         self.send_to_stdin(format!("tp {args}\n").as_bytes())
     }
 
@@ -39,7 +39,7 @@ impl MinecraftServerProcess {
 }
 
 impl game_server::ServerProcess for MinecraftServerProcess {
-    fn build(dir: String) -> Result<Self, String> {
+    fn build(dir: &str) -> Result<Self, String> {
         let mut start_command = process::Command::new("java");
 
         start_command

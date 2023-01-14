@@ -1,3 +1,4 @@
-fn main() {
-    game_manager::run();
+#[tokio::main]
+async fn main() {
+    game_manager::run().await;
 }

@@ -1,29 +1,138 @@
-use std::env;
+use serenity::{
+    framework::standard::{macros::command, CommandResult},
+    model::prelude::Message,
+    prelude::*,
+};
 
-use game_server::{DispatchResult, Dispatcher};
-use game_server_macro::bjorn_command;
-
-#[bjorn_command("Starting Minecraft server...")]
-pub fn start(ws: &Dispatcher) -> DispatchResult {
-    ws.dispatch("minecraft start".into())
+#[command]
+pub async fn start(ctx: &Context, msg: &Message) -> CommandResult {
+    dispatch(
+        ctx,
+        msg,
+        ws_protocol::WsClientType::ServerManager,
+        "minecraft start".into(),
+    )
+    .await
 }
 
-#[bjorn_command("Stopping Minecraft server...")]
-pub fn stop(ws: &Dispatcher) -> DispatchResult {
-    ws.dispatch("minecraft stop".into())
+#[command]
+pub async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
+    dispatch(
+        ctx,
+        msg,
+        ws_protocol::WsClientType::ServerManager,
+        "minecraft stop".into(),
+    )
+    .await
 }
 
-#[bjorn_command("Saving Minecraft server...")]
-pub fn save(ws: &Dispatcher) -> DispatchResult {
-    ws.dispatch("minecraft save".into())
+#[command]
+pub async fn save(ctx: &Context, msg: &Message) -> CommandResult {
+    dispatch(
+        ctx,
+        msg,
+        ws_protocol::WsClientType::ServerManager,
+        "minecraft save".into(),
+    )
+    .await
 }
 
-#[bjorn_command("Sending chat to Minecraft server...")]
-pub fn say(ws: &Dispatcher, args: &str) -> DispatchResult {
-    ws.dispatch(format!("minecraft say {args}"))
+#[command]
+pub async fn say(ctx: &Context, msg: &Message) -> CommandResult {
+    if msg.content.len() < 5 {
+        msg.reply(ctx, "You must specify a message.").await.unwrap();
+
+        return Ok(());
+    }
+
+    let message = format!(
+        "minecraft say {}",
+        msg.content
+            .chars()
+            .skip(5)
+            .skip_while(|c| c.is_whitespace())
+            .collect::<String>()
+    );
+
+    dispatch(ctx, msg, ws_protocol::WsClientType::ServerManager, message).await
 }
 
-#[bjorn_command("Sending tp command Minecraft server...")]
-pub fn tp(ws: &Dispatcher, args: &str) -> DispatchResult {
-    ws.dispatch(format!("minecraft tp {args}"))
+#[command]
+pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
+    if msg.content.len() < 4 {
+        msg.reply(ctx, "You must specify a message.").await.unwrap();
+
+        return Ok(());
+    }
+
+    let message = format!(
+        "minecraft tp {}",
+        msg.content
+            .chars()
+            .skip(4)
+            .skip_while(|c| c.is_whitespace())
+            .collect::<String>()
+    );
+
+    dispatch(ctx, msg, ws_protocol::WsClientType::ServerManager, message).await
+}
+
+async fn dispatch(
+    ctx: &Context,
+    msg: &Message,
+    recipient: ws_protocol::WsClientType,
+    text: String,
+) -> CommandResult {
+    let data = ctx.data.read().await;
+
+    // Ignore if config is None.
+    let config = match data
+        .get::<ws_protocol::client::DiscordConfig>()
+        .unwrap()
+        .lock()
+        .unwrap()
+        .take()
+    {
+        Some(config) => config,
+        None => return Ok(()),
+    };
+
+    // Ignore if wrong channel or user.
+    if config.channel_id() != msg.channel_id.0 || config.user_id() != msg.author.id.0 {
+        return Ok(());
+    }
+
+    data.get::<ws_protocol::client::DiscordConfig>()
+        .unwrap()
+        .lock()
+        .unwrap()
+        .replace(config);
+
+    // Ignore if channel is None.
+    let mut ws_channel = match data
+        .get::<ws_protocol::WsChannel>()
+        .unwrap()
+        .lock()
+        .unwrap()
+        .take()
+    {
+        Some(channel) => channel,
+        None => return Ok(()),
+    };
+
+    drop(data);
+
+    let reply = ws_channel.request(recipient, text).await;
+
+    let data = ctx.data.read().await;
+    data.get::<ws_protocol::WsChannel>()
+        .unwrap()
+        .lock()
+        .unwrap()
+        .replace(ws_channel);
+    drop(data);
+
+    msg.reply(ctx, reply).await.unwrap();
+
+    Ok(())
 }

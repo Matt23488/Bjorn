@@ -1,32 +1,18 @@
 use std::env;
-use std::sync::mpsc;
-use std::sync::Arc;
-use std::sync::Mutex;
 
-use game_server::Dispatcher;
-use serde::Deserialize;
-use serde::Serialize;
 use serenity::async_trait;
 use serenity::framework::standard::macros::group;
 use serenity::framework::standard::StandardFramework;
 use serenity::prelude::*;
 
-use serenity_ctrlc::Disconnector;
-use serenity_ctrlc::Ext;
-
 use minecraft::*;
+use ws_protocol::client::ClientExtension;
 
 #[group]
 #[commands(start, stop, save, say, tp)] // TODO: Macro to add commands in?
 struct General;
 
 struct Handler;
-
-#[derive(Serialize, Deserialize)]
-struct Config {
-    prefix: String,
-    channel: u64,
-}
 
 #[async_trait]
 impl EventHandler for Handler {}
@@ -41,62 +27,18 @@ async fn main() {
         _ => panic!("Discord environment not configured"),
     };
 
-    let ws_client = Arc::new(Mutex::new(Some(ws_protocol::WsClient::new(
-        ws_protocol::WsClientType::Discord,
-    ))));
-
     let framework = StandardFramework::new()
         .configure(|c| c.prefix(prefix))
         .group(&GENERAL_GROUP);
 
     let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
-    let mut discord_client = {
-        let ws_client = ws_client.clone();
-        Client::builder(bot_token, intents)
-            .event_handler(Handler)
-            .framework(framework)
-            .await
-            .expect("Error creating client")
-            .ctrlc_with(move |dc| {
-                let ws_client = ws_client.clone();
-                async move {
-                    println!("Ctrl+C detected");
 
-                    println!("Closing WebSocket client");
-                    if let Some(client) = ws_client.lock().unwrap().take() {
-                        client.shutdown();
-                    }
-
-                    println!("Disconnecting Discord bot");
-                    Disconnector::disconnect_some(dc).await;
-                }
-            })
-            .expect("Error registering Ctrl+C handler")
-    };
-
-    let mut data = discord_client.data.write().await;
-
-    let (sender, receiver) = mpsc::channel::<String>();
-
-    data.insert::<Dispatcher>(Mutex::new(Some(Dispatcher::new(sender))));
-    drop(data);
-
-    let receiver = Arc::new(Mutex::new(receiver));
-    tokio::spawn(async move {
-        loop {
-            let message = match receiver.lock().unwrap().recv() {
-                Ok(message) => message,
-                Err(_) => break,
-            };
-
-            if let Some(ws) = ws_client.lock().unwrap().as_ref() {
-                ws.send_message(message).unwrap_or_default();
-            }
-        }
-    });
-
-    // start listening for events by starting a single shard
-    if let Err(why) = discord_client.start().await {
-        println!("An error occurred while running the client: {:?}", why);
-    }
+    Client::builder(bot_token, intents)
+        .event_handler(Handler)
+        .framework(framework)
+        .await
+        .expect("Error creating Discord client")
+        .start_with_bjorn()
+        .await
+        .expect("Error starting Discord client");
 }

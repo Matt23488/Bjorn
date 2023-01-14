@@ -1,17 +1,17 @@
-#[cfg(feature = "server")]
-mod server;
+#[cfg(feature = "server_process")]
+mod server_process;
+
+#[cfg(feature = "server_process")]
+pub use server_process::*;
 
 #[cfg(feature = "ws_protocol")]
 mod ws_protocol;
 
-#[cfg(feature = "serenity")]
-mod serenity;
-
-#[cfg(feature = "server")]
-pub use server::*;
-
 #[cfg(feature = "ws_protocol")]
 pub use crate::ws_protocol::*;
+
+#[cfg(feature = "serenity")]
+mod serenity;
 
 #[cfg(feature = "serenity")]
 pub use crate::serenity::*;

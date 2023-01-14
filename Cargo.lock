@@ -46,7 +46,7 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "tokio-rustls",
- "tungstenite",
+ "tungstenite 0.17.3",
  "webpki-roots",
 ]
 
@@ -392,12 +392,10 @@ dependencies = [
 name = "discord"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
  "game_server",
  "minecraft",
- "serde",
- "serde_json",
  "serenity",
- "serenity_ctrlc",
  "tokio",
  "ws_protocol",
 ]
@@ -584,6 +582,7 @@ dependencies = [
  "ctrlc",
  "game_server",
  "minecraft",
+ "tokio",
  "ws_protocol",
 ]
 
@@ -591,7 +590,6 @@ dependencies = [
 name = "game_server"
 version = "0.1.0"
 dependencies = [
- "serenity",
  "ws_protocol",
 ]
 
@@ -1174,8 +1172,8 @@ name = "minecraft"
 version = "0.1.0"
 dependencies = [
  "game_server",
- "game_server_macro",
  "serenity",
+ "ws_protocol",
 ]
 
 [[package]]
@@ -2045,6 +2043,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha1"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f04293dc80c3993519f2d7f6f511707ee7094fe0c6d3406feb330cdb3540eba3"
+dependencies = [
+ "cfg-if 1.0.0",
+ "cpufeatures",
+ "digest 0.10.6",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2381,6 +2390,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-tungstenite"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54319c93411147bced34cb5609a80e0a8e44c5999c93903a81cd866630ec0bfd"
+dependencies = [
+ "futures-util",
+ "log 0.4.17",
+ "tokio",
+ "tungstenite 0.18.0",
+]
+
+[[package]]
 name = "tokio-util"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2464,6 +2485,25 @@ dependencies = [
  "url 2.3.1",
  "utf-8",
  "webpki",
+]
+
+[[package]]
+name = "tungstenite"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30ee6ab729cd4cf0fd55218530c4522ed30b7b6081752839b68fcec8d0960788"
+dependencies = [
+ "base64 0.13.1",
+ "byteorder",
+ "bytes 1.3.0",
+ "http",
+ "httparse",
+ "log 0.4.17",
+ "rand 0.8.5",
+ "sha1",
+ "thiserror",
+ "url 2.3.1",
+ "utf-8",
 ]
 
 [[package]]
@@ -2925,6 +2965,15 @@ dependencies = [
 name = "ws_protocol"
 version = "0.1.0"
 dependencies = [
+ "futures-channel",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "serenity",
+ "serenity_ctrlc",
+ "tokio",
+ "tokio-tungstenite",
+ "tungstenite 0.18.0",
  "websocket",
 ]
 
@@ -2932,6 +2981,8 @@ dependencies = [
 name = "ws_server"
 version = "0.1.0"
 dependencies = [
+ "ctrlc",
+ "tokio",
  "ws_protocol",
 ]
 
