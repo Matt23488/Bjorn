@@ -13,6 +13,7 @@ pub fn bjorn_command(attr: TokenStream, item: TokenStream) -> TokenStream {
 fn impl_bjorn_command(attr: &syn::AttributeArgs, item: &syn::ItemFn) -> TokenStream {
     let mut user_fn = item.clone();
     user_fn.sig.ident = format_ident!("bjorn_command_{}", item.sig.ident);
+    user_fn.vis = syn::Visibility::Inherited;
 
     let command_name = item.sig.ident.clone();
     let user_fn_ident = user_fn.sig.ident.clone();
