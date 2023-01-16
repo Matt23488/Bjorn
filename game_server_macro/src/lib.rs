@@ -1,88 +1,87 @@
-// use proc_macro::TokenStream;
-// use quote::{format_ident, quote};
-// use syn;
+use proc_macro::TokenStream;
+use quote::{format_ident, quote, quote_spanned};
+use syn::{self, parse_macro_input, spanned::Spanned};
 
-// #[proc_macro_attribute]
-// pub fn bjorn_command(attr: TokenStream, item: TokenStream) -> TokenStream {
-//     let attr = syn::parse(attr).unwrap();
-//     let item = syn::parse(item).unwrap();
+#[proc_macro_attribute]
+pub fn bjorn_command(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = parse_macro_input!(attr as syn::AttributeArgs);
+    let item = parse_macro_input!(item as syn::ItemFn);
 
-//     impl_bjorn_command(&attr, &item)
-// }
+    impl_bjorn_command(&attr, &item)
+}
 
-// fn impl_bjorn_command(attr: &syn::LitStr, item: &syn::ItemFn) -> TokenStream {
-//     if item.sig.asyncness.is_some() {
-//         panic!("Async functions aren't supported. I have to figure out how to get around the lingering borrow of `data`.");
-//     }
+fn impl_bjorn_command(attr: &syn::AttributeArgs, item: &syn::ItemFn) -> TokenStream {
+    let mut user_fn = item.clone();
+    user_fn.sig.ident = format_ident!("bjorn_command_{}", item.sig.ident);
 
-//     let mut clone = item.clone();
-//     let name = &item.sig.ident;
-//     clone.sig.ident = format_ident!("__{name}");
-//     let clone_name = &clone.sig.ident;
-//     let vis = &item.vis;
-//     let attrs = &item.attrs;
+    let command_name = item.sig.ident.clone();
+    let user_fn_ident = user_fn.sig.ident.clone();
 
-//     let call = if item.sig.inputs.len() == 1 {
-//         quote! {
-//             #clone_name(ws)
-//         }
-//     } else if item.sig.inputs.len() == 2 {
-//         quote! {
-//             let rest: String = msg.content.chars().skip_while(|c| !c.is_whitespace()).collect();
-//             #clone_name(ws, rest.trim())
-//         }
-//     } else {
-//         panic!("Incompatible arguments");
-//     };
+    let mut admin_already_set = false;
+    let mut role_path = quote!(ws_protocol::client::Role::User);
+    let mut config = None;
 
-//     let gen = quote! {
-//         #clone
+    let mut admin_err = None;
+    let mut config_err = None;
+    for arg in attr {
+        match arg {
+            syn::NestedMeta::Meta(syn::Meta::Path(path)) => {
+                let name = path.segments.first().as_ref().unwrap().ident.clone();
+                if name.to_string() == "admin" {
+                    if admin_already_set {
+                        admin_err = Some(quote_spanned! {
+                            path.span() => compile_error!("You've already declared admin on this command.");
+                        });
+                    } else {
+                        role_path = quote!(ws_protocol::client::Role::Admin);
+                        admin_already_set = true;
+                    }
 
-//         #[serenity::framework::standard::macros::command]
-//         #(#attrs)*
-//         #vis async fn #name(ctx: &serenity::client::Context, msg: &serenity::model::channel::Message) -> serenity::framework::standard::CommandResult {
-//             let channel_ok = match env::var("BJORN_MINECRAFT_DISCORD_COMMAND_CHANNEL") {
-//                 Err(_) => false,
-//                 Ok(channel) => match channel.parse::<u64>() {
-//                     Ok(channel) => channel == msg.channel_id.0,
-//                     Err(_) => false,
-//                 }
-//             };
+                    continue;
+                };
 
-//             let user_ok = match env::var("BJORN_MINECRAFT_DISCORD_ADMIN") {
-//                 Err(_) => false,
-//                 Ok(admin) => match admin.parse::<u64>() {
-//                     Ok(admin) => admin == msg.author.id.0,
-//                     Err(_) => false,
-//                 }
-//             };
+                if config.is_some() {
+                    config_err = Some(quote_spanned! {
+                        path.span() => compile_error!("Config type already set.");
+                    });
 
-//             if !channel_ok || !user_ok {
-//                 return Ok(());
-//             }
+                    continue;
+                }
 
-//             let data = ctx.data.read().await;
+                config = Some(quote!(#path));
+            }
+            _ => println!("Unknown arg, ignoring"),
+        }
+    }
 
-//             // * NOTE: Using this if let expression lets us ensure that `data` will not be used after any additional awaits.
-//             // * Otherwise the `command` macro errors.
-//             let ws_closed = if let Some(ws) = data.get::<ws_protocol::client::Dispatcher>().unwrap().lock().unwrap().as_ref() {
-//                 #call.is_err()
-//             } else {
-//                 true
-//             };
+    quote! {
+        #admin_err
+        #config_err
 
-//             msg.reply(
-//                 ctx,
-//                 if ws_closed {
-//                     "No connection to Game Manager."
-//                 } else {
-//                     #attr
-//                 },
-//             )
-//             .await?;
+        #user_fn
 
-//             Ok(())
-//         }
-//     };
-//     gen.into()
-// }
+        #[command]
+        pub async fn #command_name(ctx: &serenity::prelude::Context, msg: &serenity::model::prelude::Message) -> CommandResult {
+            let data = ctx.data.read().await;
+
+            let config = data.get::<#config>().unwrap().lock().unwrap().take().unwrap();
+            drop(data);
+
+            if !config.has_necessary_permissions(ctx, msg, #role_path).await {
+                msg.reply(ctx, "You don't have permission.").await.unwrap();
+
+                let data = ctx.data.read().await;
+                data.get::<#config>().unwrap().lock().unwrap().replace(config);
+                drop(data);
+
+                return Ok(());
+            }
+
+            let data = ctx.data.read().await;
+            data.get::<#config>().unwrap().lock().unwrap().replace(config);
+            drop(data);
+
+            #user_fn_ident(ctx, msg).await
+        }
+    }.into()
+}

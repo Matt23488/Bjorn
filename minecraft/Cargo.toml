@@ -7,10 +7,12 @@ edition = "2021"
 
 [dependencies]
 game_server = { path = "../game_server" }
+game_server_macro = { path = "../game_server_macro" }
+serde = { version = "1.0.152", features = ["derive"], optional = true }
 serenity = { version = "0.11.5", features = ["client", "model", "gateway", "rustls_backend"], optional = true }
 ws_protocol = { path = "../ws_protocol", optional = true }
 
 [features]
 server_process = []
-serenity = ["dep:serenity", "ws_protocol/serenity"]
-ws_protocol = ["dep:ws_protocol", "game_server/ws_protocol", "server_process"]
+serenity = ["dep:serenity", "dep:serde", "ws_protocol", "ws_protocol/serenity"]
+ws_protocol = ["dep:ws_protocol", "server_process"]

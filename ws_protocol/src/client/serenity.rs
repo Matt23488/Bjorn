@@ -4,18 +4,21 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use serenity::async_trait;
+
 use crate::{WsChannel, WsClientType};
 
 use super::TaskCanceller;
 
 type BjornSerenityClientFuture =
-    Pin<Box<dyn futures_util::Future<Output = Result<(), SerenityBjornError>>>>;
+    Pin<Box<dyn futures_util::Future<Output = Result<BjornSerenityClient, SerenityBjornError>>>>;
+
 pub trait ClientExtension {
-    fn start_with_bjorn(self) -> BjornSerenityClientFuture;
+    fn with_bjorn(self) -> BjornSerenityClientFuture;
 }
 
 impl ClientExtension for serenity::Client {
-    fn start_with_bjorn(mut self) -> BjornSerenityClientFuture {
+    fn with_bjorn(self) -> BjornSerenityClientFuture {
         Box::pin(async move {
             let (bot_channel, ws_task, canceller) = with_ws_connection()?;
 
@@ -23,11 +26,69 @@ impl ClientExtension for serenity::Client {
 
             with_ctrlc(&self, canceller)?;
 
-            let (_, serenity_result) = tokio::join!(ws_task, self.start());
-            serenity_result.unwrap();
-
-            Ok(())
+            Ok(BjornSerenityClient::new(self, ws_task))
         })
+    }
+}
+
+pub struct BjornSerenityClient {
+    client: serenity::Client,
+    ws_task: tokio::task::JoinHandle<()>,
+    data_setters: Option<Vec<Box<dyn FnOnce(&mut serenity::prelude::TypeMap)>>>,
+}
+
+impl BjornSerenityClient {
+    fn new(client: serenity::Client, ws_task: tokio::task::JoinHandle<()>) -> BjornSerenityClient {
+        BjornSerenityClient {
+            client,
+            ws_task,
+            data_setters: Some(vec![]),
+        }
+    }
+
+    pub async fn start(mut self) -> Result<(), SerenityBjornError> {
+        let data_setters = self.data_setters.take().unwrap();
+        if data_setters.len() > 0 {
+            let mut data = self.client.data.write().await;
+            data_setters.into_iter().for_each(|f| f(&mut data));
+            drop(data);
+        }
+
+        let (_, serenity_result) = tokio::join!(self.ws_task, self.client.start());
+        serenity_result?;
+
+        Ok(())
+    }
+
+    pub fn with_config<T>(mut self) -> Self
+    where
+        T: GameConfigTypeMapKey,
+    {
+        let path = format!("discord_games/{}.json", T::id());
+        let config = match std::fs::read_to_string(path) {
+            Ok(config) => config,
+            Err(_) => {
+                println!("Couldn't find config for {}, skipping.", T::id());
+                return self;
+            }
+        };
+
+        let config = match serde_json::from_str::<T::Config>(config.as_str()) {
+            Ok(config) => config,
+            Err(_) => {
+                println!("Counldn't parse {} config, skipping.", T::id());
+                return self;
+            }
+        };
+
+        self.data_setters
+            .as_mut()
+            .unwrap()
+            .push(Box::new(move |data| {
+                data.insert::<T>(T::new(config));
+            }));
+
+        self
     }
 }
 
@@ -42,32 +103,93 @@ fn with_ws_connection() -> Result<WsConnectionOk, SerenityBjornError> {
     Ok((bot_channel, ws_task, canceller))
 }
 
+pub enum Role {
+    User,
+    Admin,
+}
+
+impl Role {
+    pub fn is_admin(&self) -> bool {
+        match self {
+            Role::Admin => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_user(&self) -> bool {
+        match self {
+            Role::User => true,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct RoleConfig {
+    admin: Vec<u64>,
+    user: Vec<u64>,
+}
+
+impl RoleConfig {
+    async fn has_role_static(
+        valid_roles: &Vec<u64>,
+        ctx: &serenity::prelude::Context,
+        msg: &serenity::model::prelude::Message,
+        guild_id: serenity::model::prelude::GuildId,
+    ) -> bool {
+        for role in valid_roles {
+            match msg.author.has_role(ctx, guild_id, *role).await {
+                Ok(has_role) if has_role => {
+                    return true;
+                }
+                _ => (),
+            }
+        }
+
+        false
+    }
+
+    pub async fn has_role(
+        &self,
+        ctx: &serenity::prelude::Context,
+        msg: &serenity::model::prelude::Message,
+        guild_id: serenity::model::prelude::GuildId,
+        role: Role,
+    ) -> bool {
+        if role.is_admin() && RoleConfig::has_role_static(&self.admin, ctx, msg, guild_id).await {
+            true
+        } else if role.is_user()
+            && RoleConfig::has_role_static(&self.user, ctx, msg, guild_id).await
+        {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+#[async_trait]
+pub trait GameConfigTypeMapKey: serenity::prelude::TypeMapKey {
+    type Config: serde::Serialize + for<'de> serde::Deserialize<'de>;
+
+    fn id() -> &'static str;
+    fn new(game_config: Self::Config) -> Self::Value;
+    async fn has_necessary_permissions(
+        &self,
+        ctx: &serenity::prelude::Context,
+        msg: &serenity::model::prelude::Message,
+        role: Role,
+    ) -> bool;
+}
+
 async fn with_serenity_config(
     client: &serenity::Client,
     bot_channel: WsChannel,
 ) -> Result<(), SerenityBjornError> {
     let mut data = client.data.write().await;
 
-    let channel = match env::var("BJORN_MINECRAFT_DISCORD_COMMAND_CHANNEL") {
-        Err(_) => None,
-        Ok(channel) => channel.parse::<u64>().ok(),
-    };
-
-    let user = match env::var("BJORN_MINECRAFT_DISCORD_ADMIN") {
-        Err(_) => None,
-        Ok(admin) => admin.parse::<u64>().ok(),
-    };
-
-    let config = match (channel, user) {
-        (Some(channel_id), Some(user_id)) => DiscordConfig {
-            channel_id,
-            user_id,
-        },
-        _ => return Err(SerenityBjornError::InvalidEnvironment),
-    };
-
-    data.insert::<DiscordConfig>(Mutex::new(Some(config)));
     data.insert::<WsChannel>(Mutex::new(Some(bot_channel)));
+
     drop(data);
 
     Ok(())
@@ -98,7 +220,8 @@ fn with_ctrlc(
 #[derive(Debug)]
 pub enum SerenityBjornError {
     InvalidEnvironment,
-    CtrlCError,
+    CtrlC,
+    SerenityRun,
 }
 
 impl std::fmt::Display for SerenityBjornError {
@@ -108,7 +231,8 @@ impl std::fmt::Display for SerenityBjornError {
             "{}",
             match self {
                 Self::InvalidEnvironment => "Bjorn WS environment not configured.",
-                Self::CtrlCError => "Ctrl+C handler failed.",
+                Self::CtrlC => "Ctrl+C handler failed.",
+                Self::SerenityRun => "Error running Discord client.",
             }
         )
     }
@@ -124,27 +248,26 @@ impl From<env::VarError> for SerenityBjornError {
 
 impl From<serenity_ctrlc::Error> for SerenityBjornError {
     fn from(_: serenity_ctrlc::Error) -> Self {
-        SerenityBjornError::CtrlCError
+        SerenityBjornError::CtrlC
     }
 }
 
-pub struct DiscordConfig {
-    channel_id: u64,
-    user_id: u64,
-}
-
-impl DiscordConfig {
-    pub fn channel_id(&self) -> u64 {
-        self.channel_id
-    }
-
-    pub fn user_id(&self) -> u64 {
-        self.user_id
+impl From<serenity::Error> for SerenityBjornError {
+    fn from(_: serenity::Error) -> Self {
+        SerenityBjornError::SerenityRun
     }
 }
 
-impl serenity::prelude::TypeMapKey for DiscordConfig {
-    type Value = Mutex<Option<DiscordConfig>>;
+impl From<std::io::Error> for SerenityBjornError {
+    fn from(_: std::io::Error) -> Self {
+        SerenityBjornError::InvalidEnvironment
+    }
+}
+
+impl From<serde_json::Error> for SerenityBjornError {
+    fn from(_: serde_json::Error) -> Self {
+        SerenityBjornError::InvalidEnvironment
+    }
 }
 
 impl serenity::prelude::TypeMapKey for WsChannel {

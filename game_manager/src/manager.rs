@@ -29,7 +29,7 @@ impl GameManager {
 
     pub fn register<T>(&mut self)
     where
-        T: game_server::GameServer + game_server::GameServerBuilder,
+        T: game_server::SupportedGame + game_server::GameServer + game_server::GameServerBuilder,
     {
         match T::get_config() {
             Some(config) => {
@@ -37,9 +37,9 @@ impl GameManager {
                     .as_mut()
                     .unwrap()
                     .insert(T::id(), T::build(config));
-                println!("{} server registered", T::name());
+                println!("{} server registered", T::display_name());
             }
-            None => println!("{} not configured, skipping.", T::name()),
+            None => println!("{} not configured, skipping.", T::display_name()),
         }
     }
 

@@ -38,7 +38,11 @@ async fn main() {
         .framework(framework)
         .await
         .expect("Error creating Discord client")
-        .start_with_bjorn()
+        .with_bjorn()
+        .await
+        .expect("Bjorn setup failed")
+        .with_config::<minecraft::DiscordConfig>()
+        .start()
         .await
         .expect("Error starting Discord client");
 }

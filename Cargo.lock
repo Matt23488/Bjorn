@@ -395,6 +395,7 @@ dependencies = [
  "futures-util",
  "game_server",
  "minecraft",
+ "serde",
  "serenity",
  "tokio",
  "ws_protocol",
@@ -589,9 +590,6 @@ dependencies = [
 [[package]]
 name = "game_server"
 version = "0.1.0"
-dependencies = [
- "ws_protocol",
-]
 
 [[package]]
 name = "game_server_macro"
@@ -1172,6 +1170,8 @@ name = "minecraft"
 version = "0.1.0"
 dependencies = [
  "game_server",
+ "game_server_macro",
+ "serde",
  "serenity",
  "ws_protocol",
 ]
@@ -2967,6 +2967,7 @@ version = "0.1.0"
 dependencies = [
  "futures-channel",
  "futures-util",
+ "game_server",
  "serde",
  "serde_json",
  "serenity",

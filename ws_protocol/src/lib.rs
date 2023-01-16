@@ -30,8 +30,8 @@ const CLIENT_TYPE_WEB: &str = "web";
 const CLIENT_TYPE_SERVER_MANAGER: &str = "server manager";
 
 pub struct WsChannel {
-    tx: Option<UnboundedSender<WsMessage>>,
-    rx: Option<UnboundedReceiver<WsMessage>>,
+    sink: Option<UnboundedSender<WsMessage>>,
+    source: Option<UnboundedReceiver<WsMessage>>,
     client_type: WsClientType,
     next_id: u64,
     response_queue: VecDeque<WsMessage>,
@@ -40,12 +40,12 @@ pub struct WsChannel {
 impl WsChannel {
     fn new(
         client_type: WsClientType,
-        to_server: UnboundedSender<WsMessage>,
-        from_server: UnboundedReceiver<WsMessage>,
+        sink: UnboundedSender<WsMessage>,
+        source: UnboundedReceiver<WsMessage>,
     ) -> WsChannel {
         WsChannel {
-            tx: Some(to_server),
-            rx: Some(from_server),
+            sink: Some(sink),
+            source: Some(source),
             client_type,
             next_id: 0,
             response_queue: VecDeque::new(),
@@ -73,7 +73,7 @@ impl WsChannel {
             message,
         };
 
-        self.tx.as_ref().unwrap().send(message).unwrap();
+        self.sink.as_ref().unwrap().send(message).unwrap();
 
         loop {
             match self.next_response().await {
@@ -81,10 +81,8 @@ impl WsChannel {
                     id: Some(id),
                     message,
                     ..
-                } => {
-                    if id == next_id {
-                        break message;
-                    }
+                } if id == next_id => {
+                    break message;
                 }
                 incoming => self.response_queue.push_back(incoming),
             }
@@ -111,12 +109,12 @@ impl WsChannel {
                 message: handler(message).await,
             };
 
-            self.tx.as_ref().unwrap().send(response).unwrap();
+            self.sink.as_ref().unwrap().send(response).unwrap();
         }
     }
 
     pub fn split(mut self) -> (UnboundedSender<WsMessage>, UnboundedReceiver<WsMessage>) {
-        (self.tx.take().unwrap(), self.rx.take().unwrap())
+        (self.sink.take().unwrap(), self.source.take().unwrap())
     }
 
     async fn next_response(&mut self) -> WsMessage {
@@ -124,7 +122,7 @@ impl WsChannel {
             return self.response_queue.pop_front().unwrap();
         }
 
-        self.rx.as_mut().unwrap().recv().await.unwrap()
+        self.source.as_mut().unwrap().recv().await.unwrap()
     }
 }
 

@@ -12,3 +12,4 @@ ws_protocol = { path = "../ws_protocol", features = ["tokio", "serenity"] }
 minecraft = { path = "../minecraft", features = ["serenity", "ws_protocol"] }
 game_server = { path = "../game_server" }
 futures-util = { version = "0.3.25" }
+serde = { version = "1.0.152", features = ["derive"] }

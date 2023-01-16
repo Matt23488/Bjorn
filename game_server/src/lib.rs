@@ -6,8 +6,18 @@ pub trait ServerProcess {
     fn stop(&mut self) -> Result<(), String>;
 }
 
-#[cfg(feature = "ws_protocol")]
-mod ws_protocol;
+pub trait SupportedGame {
+    fn id() -> &'static str;
+    fn display_name() -> &'static str;
+}
 
-#[cfg(feature = "ws_protocol")]
-pub use crate::ws_protocol::*;
+pub trait GameServer {
+    fn handle_message(&mut self, message: &str) -> String;
+}
+
+pub trait GameServerBuilder {
+    type Config;
+
+    fn get_config() -> Option<Self::Config>;
+    fn build(config: Self::Config) -> Box<dyn GameServer + Send + Sync>;
+}

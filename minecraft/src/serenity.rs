@@ -1,43 +1,31 @@
+use game_server_macro::bjorn_command;
 use serenity::{
     framework::standard::{macros::command, CommandResult},
     model::prelude::Message,
     prelude::*,
 };
 
-#[command]
+use ws_protocol::client::GameConfigTypeMapKey;
+
+mod config;
+pub use self::config::*;
+
+#[bjorn_command(DiscordConfig)]
 pub async fn start(ctx: &Context, msg: &Message) -> CommandResult {
-    dispatch(
-        ctx,
-        msg,
-        ws_protocol::WsClientType::ServerManager,
-        "minecraft start".into(),
-    )
-    .await
+    dispatch(ctx, msg, "start".into()).await
 }
 
-#[command]
+#[bjorn_command(DiscordConfig, admin)]
 pub async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
-    dispatch(
-        ctx,
-        msg,
-        ws_protocol::WsClientType::ServerManager,
-        "minecraft stop".into(),
-    )
-    .await
+    dispatch(ctx, msg, "stop".into()).await
 }
 
-#[command]
+#[bjorn_command(DiscordConfig)]
 pub async fn save(ctx: &Context, msg: &Message) -> CommandResult {
-    dispatch(
-        ctx,
-        msg,
-        ws_protocol::WsClientType::ServerManager,
-        "minecraft save".into(),
-    )
-    .await
+    dispatch(ctx, msg, "save".into()).await
 }
 
-#[command]
+#[bjorn_command(DiscordConfig, admin)]
 pub async fn say(ctx: &Context, msg: &Message) -> CommandResult {
     if msg.content.len() < 5 {
         msg.reply(ctx, "You must specify a message.").await.unwrap();
@@ -46,7 +34,7 @@ pub async fn say(ctx: &Context, msg: &Message) -> CommandResult {
     }
 
     let message = format!(
-        "minecraft say {}",
+        "say {}",
         msg.content
             .chars()
             .skip(5)
@@ -54,10 +42,10 @@ pub async fn say(ctx: &Context, msg: &Message) -> CommandResult {
             .collect::<String>()
     );
 
-    dispatch(ctx, msg, ws_protocol::WsClientType::ServerManager, message).await
+    dispatch(ctx, msg, message.as_str()).await
 }
 
-#[command]
+#[bjorn_command(DiscordConfig)]
 pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
     if msg.content.len() < 4 {
         msg.reply(ctx, "You must specify a message.").await.unwrap();
@@ -66,7 +54,7 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
     }
 
     let message = format!(
-        "minecraft tp {}",
+        "tp {}",
         msg.content
             .chars()
             .skip(4)
@@ -74,39 +62,12 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
             .collect::<String>()
     );
 
-    dispatch(ctx, msg, ws_protocol::WsClientType::ServerManager, message).await
+    dispatch(ctx, msg, message.as_str()).await
 }
 
-async fn dispatch(
-    ctx: &Context,
-    msg: &Message,
-    recipient: ws_protocol::WsClientType,
-    text: String,
-) -> CommandResult {
+// TODO: Maybe move into macro
+async fn dispatch(ctx: &Context, msg: &Message, text: &str) -> CommandResult {
     let data = ctx.data.read().await;
-
-    // Ignore if config is None.
-    let config = match data
-        .get::<ws_protocol::client::DiscordConfig>()
-        .unwrap()
-        .lock()
-        .unwrap()
-        .take()
-    {
-        Some(config) => config,
-        None => return Ok(()),
-    };
-
-    // Ignore if wrong channel or user.
-    if config.channel_id() != msg.channel_id.0 || config.user_id() != msg.author.id.0 {
-        return Ok(());
-    }
-
-    data.get::<ws_protocol::client::DiscordConfig>()
-        .unwrap()
-        .lock()
-        .unwrap()
-        .replace(config);
 
     // Ignore if channel is None.
     let mut ws_channel = match data
@@ -122,7 +83,12 @@ async fn dispatch(
 
     drop(data);
 
-    let reply = ws_channel.request(recipient, text).await;
+    let reply = ws_channel
+        .request(
+            ws_protocol::WsClientType::ServerManager,
+            format!("minecraft {text}"),
+        )
+        .await;
 
     let data = ctx.data.read().await;
     data.get::<ws_protocol::WsChannel>()

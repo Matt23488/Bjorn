@@ -2,21 +2,13 @@ use game_server::ServerProcess;
 
 use crate::server_process::MinecraftServerProcess;
 
-pub enum Message {
-    Start,
-    Stop,
-    Save,
-    Say(String),
-    Tp(String),
-}
-
-pub struct MinecraftConfig {
+pub struct MinecraftProcConfig {
     server_path: String,
 }
 
-impl MinecraftConfig {
-    fn with_server_path(server_path: String) -> MinecraftConfig {
-        MinecraftConfig { server_path }
+impl MinecraftProcConfig {
+    fn with_server_path(server_path: String) -> MinecraftProcConfig {
+        MinecraftProcConfig { server_path }
     }
 }
 
@@ -24,24 +16,26 @@ pub struct MinecraftServer {
     process: MinecraftServerProcess,
 }
 
-impl game_server::GameServerBuilder for MinecraftServer {
-    type Configuration = MinecraftConfig;
-
+impl game_server::SupportedGame for MinecraftServer {
     fn id() -> &'static str {
         "minecraft"
     }
 
-    fn name() -> &'static str {
+    fn display_name() -> &'static str {
         "Minecraft"
     }
+}
 
-    fn get_config() -> Option<Self::Configuration> {
+impl game_server::GameServerBuilder for MinecraftServer {
+    type Config = MinecraftProcConfig;
+
+    fn get_config() -> Option<Self::Config> {
         std::env::var("BJORN_MINECRAFT_SERVER")
-            .map(MinecraftConfig::with_server_path)
+            .map(MinecraftProcConfig::with_server_path)
             .ok()
     }
 
-    fn build(config: Self::Configuration) -> Box<dyn game_server::GameServer + Send + Sync> {
+    fn build(config: Self::Config) -> Box<dyn game_server::GameServer + Send + Sync> {
         Box::new(MinecraftServer {
             process: MinecraftServerProcess::build(config.server_path.as_str())
                 .expect("Minecraft environment to be configured properly"),
@@ -58,7 +52,6 @@ macro_rules! run_command {
                 format!("{}: {}", $err, e)
             }
         }
-        .into()
     };
 }
 
@@ -68,7 +61,7 @@ impl game_server::GameServer for MinecraftServer {
             .chars()
             .take_while(|c| !c.is_whitespace())
             .collect::<String>();
-        let rest = message.chars().skip(command.len()).collect::<String>(); //.trim();
+        let rest = message.chars().skip(command.len()).collect::<String>();
         let rest = rest.trim();
 
         match command.as_str() {

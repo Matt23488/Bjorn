@@ -1,5 +1,4 @@
 /target
-config.json
-secrets.json
 dist/
 .vscode/
+/discord/discord_games/

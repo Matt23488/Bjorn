@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 websocket = "0.26.5"
 
+game_server = { path = "../game_server", optional = true }
 futures-channel = { version = "0.3.25", optional = true }
 futures-util = { version = "0.3.25", optional = true }
 tokio = { version = "1.24.1", features = ["rt", "time"], optional = true }
@@ -20,4 +21,4 @@ serenity_ctrlc = { version = "0.3.0", optional = true }
 
 [features]
 tokio = ["dep:tokio", "dep:tungstenite", "dep:tokio-tungstenite", "dep:futures-channel", "dep:futures-util"]
-serenity = ["dep:serenity", "dep:serenity_ctrlc"]
+serenity = ["dep:serenity", "dep:serenity_ctrlc", "dep:game_server"]
