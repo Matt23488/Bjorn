@@ -1,17 +1,11 @@
-#[cfg(feature = "server_process")]
-mod server_process;
+pub mod server;
 
-#[cfg(feature = "server_process")]
-pub use server_process::*;
+// TODO: I need to make this not dependent on serenity.
+// #[cfg(feature = "serenity")]
+pub mod client;
 
-#[cfg(feature = "ws_protocol")]
-mod ws_protocol;
-
-#[cfg(feature = "ws_protocol")]
-pub use crate::ws_protocol::*;
-
-#[cfg(feature = "serenity")]
+// #[cfg(feature = "serenity")]
 mod serenity;
 
-#[cfg(feature = "serenity")]
+// #[cfg(feature = "serenity")]
 pub use crate::serenity::*;

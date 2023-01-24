@@ -7,9 +7,10 @@ edition = "2021"
 
 [dependencies]
 serenity = { version = "0.11.5", features = ["client", "model", "gateway", "rustls_backend"] }
+serenity_ctrlc = { version = "0.3.0" }
 tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread"] }
-ws_protocol = { path = "../ws_protocol", features = ["tokio", "serenity"] }
-minecraft = { path = "../minecraft", features = ["serenity", "ws_protocol"] }
-game_server = { path = "../game_server" }
+ws_protocol = { path = "../ws_protocol", features = ["serenity"] }
+minecraft = { path = "../minecraft" }
 futures-util = { version = "0.3.25" }
 serde = { version = "1.0.152", features = ["derive"] }
+serde_json = { version = "1.0.91" }

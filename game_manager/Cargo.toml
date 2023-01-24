@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 ctrlc = "3.2.4"
-game_server = { path = "../game_server" }
-minecraft = { path = "../minecraft", features = ["server_process", "ws_protocol"] }
+minecraft = { path = "../minecraft" }
 tokio = { version = "1.24.1", features = ["macros", "rt-multi-thread", "sync"] }
-ws_protocol = { path = "../ws_protocol", features = ["tokio"] }
+ws_protocol = { path = "../ws_protocol", features = ["client"] }

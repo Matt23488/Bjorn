@@ -4,7 +4,7 @@ use std::{env, error::Error};
 async fn main() -> Result<(), Box<dyn Error>> {
     let addr = env::var("BJORN_WS_LISTEN_ADDRESS")?;
 
-    let (runner, canceller) = ws_protocol::server::new();
+    let (runner, canceller) = ws_protocol::WsServer::new();
 
     let mut canceller = Some(canceller);
     ctrlc::set_handler(move || {

@@ -6,19 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-websocket = "0.26.5"
-
-game_server = { path = "../game_server", optional = true }
-futures-channel = { version = "0.3.25", optional = true }
-futures-util = { version = "0.3.25", optional = true }
-tokio = { version = "1.24.1", features = ["rt", "time"], optional = true }
-tungstenite = { version = "0.18.0", optional = true }
-tokio-tungstenite = { version = "0.18.0", optional = true }
+async-trait = "0.1.61"
+futures-channel = { version = "0.3.25" }
+futures-util = { version = "0.3.25" }
+tokio = { version = "1.24.1", features = ["rt", "time"] }
+tungstenite = { version = "0.18.0" }
+tokio-tungstenite = { version = "0.18.0" }
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = { version = "1.0.91" }
 serenity = { version = "0.11.5", features = ["client"], optional = true }
-serenity_ctrlc = { version = "0.3.0", optional = true }
 
 [features]
-tokio = ["dep:tokio", "dep:tungstenite", "dep:tokio-tungstenite", "dep:futures-channel", "dep:futures-util"]
-serenity = ["dep:serenity", "dep:serenity_ctrlc", "dep:game_server"]
+client = []
+server = []
+serenity = ["client", "dep:serenity"]

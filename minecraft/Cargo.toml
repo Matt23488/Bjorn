@@ -6,13 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-game_server = { path = "../game_server" }
-game_server_macro = { path = "../game_server_macro" }
-serde = { version = "1.0.152", features = ["derive"], optional = true }
-serenity = { version = "0.11.5", features = ["client", "model", "gateway", "rustls_backend"], optional = true }
-ws_protocol = { path = "../ws_protocol", optional = true }
-
-[features]
-server_process = []
-serenity = ["dep:serenity", "dep:serde", "ws_protocol", "ws_protocol/serenity"]
-ws_protocol = ["dep:ws_protocol", "server_process"]
+ws_protocol = { path = "../ws_protocol", features = ["serenity"] }
+bjorn_macro = { path = "../bjorn_macro" }
+regex = "1.7.1"
+serde = { version = "1.0.152", features = ["derive"] }
+serenity = { version = "0.11.5", features = ["client", "model", "gateway", "rustls_backend"] }
+tokio = { version = "1.24.1", features = ["rt", "time"] }
