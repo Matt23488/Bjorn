@@ -13,6 +13,8 @@ pub enum Message {
     ShutdownComplete,
     Info(String),
     Chat(String, String),
+    PlayerJoined(String),
+    PlayerQuit(String),
 }
 
 pub struct Api;

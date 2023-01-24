@@ -26,6 +26,22 @@ impl ws_protocol::ClientApi for Api {
     }
 }
 
+macro_rules! captures {
+    ($re:ident, $line:ident) => {
+        $re.captures($line)
+            .map(|captures| {
+                captures
+                    .iter()
+                    .skip(1)
+                    .flat_map(|c| c)
+                    .map(|c| c.as_str())
+                    .collect::<Vec<_>>()
+            })
+            .as_ref()
+            .map(|c| c.as_slice())
+    };
+}
+
 pub struct Handler {
     client_api: Arc<Mutex<ws_protocol::WsClient<client::Api>>>,
     server_process: MinecraftServerProcess,
@@ -43,6 +59,9 @@ impl Handler {
         let startup_finished_regex =
             regex::Regex::new(r#"\[Server thread/INFO\]: Done \(.+\)! For help, type "help"$"#)
                 .unwrap();
+
+        let player_joined_regex = regex::Regex::new(r"(\S+) joined the game$").unwrap();
+        let player_quit_regex = regex::Regex::new(r"(\S+) left the game$").unwrap();
 
         {
             let client_api = client_api.clone();
@@ -64,6 +83,22 @@ impl Handler {
                     return;
                 }
 
+                if let Some([player]) = captures!(player_joined_regex, line) {
+                    client_api
+                        .lock()
+                        .unwrap()
+                        .send(client::Message::PlayerJoined(String::from(*player)));
+                    return;
+                }
+
+                if let Some([player]) = captures!(player_quit_regex, line) {
+                    client_api
+                        .lock()
+                        .unwrap()
+                        .send(client::Message::PlayerQuit(String::from(*player)));
+                    return;
+                }
+
                 if startup_finished_regex.is_match(line) {
                     client_api
                         .lock()
@@ -71,6 +106,8 @@ impl Handler {
                         .send(client::Message::StartupComplete);
                     return;
                 }
+
+                println!("[Minecraft] {line}");
             });
         }
 

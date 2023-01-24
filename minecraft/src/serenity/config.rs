@@ -47,8 +47,10 @@ impl ws_protocol::serenity::BjornMessageHandler for MessageHandler {
             client::Message::StartupComplete => "Minecraft Server startup complete.".into(),
             client::Message::ShutdownBegin => "Minecraft Server shutting down...".into(),
             client::Message::ShutdownComplete => "Minecraft Server shutdown complete.".into(),
-            client::Message::Info(message) => format!("Server: {message}"),
-            client::Message::Chat(player, message) => format!("{player}: {message}"),
+            client::Message::Info(message) => format!("[Server] {message}"),
+            client::Message::Chat(player, message) => format!("[In-Game] {player}: {message}"),
+            client::Message::PlayerJoined(player) => format!("{player} joined the server!"),
+            client::Message::PlayerQuit(player) => format!("{player} left the server."),
         };
 
         ws_protocol::use_data!(data, |config: DiscordConfig| {
