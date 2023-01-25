@@ -114,9 +114,17 @@ pub trait BjornMessageHandler {
 #[macro_export]
 macro_rules! use_data {
     ($data:expr, |$item:ident: $key:ty| $body:block) => {
-        let data = $data.read().await;
-        let $item = data.get::<$key>().unwrap().lock().unwrap().take().unwrap();
-        drop(data);
+        let $item = loop {
+            let data = $data.read().await;
+            let opt = data.get::<$key>().unwrap().lock().unwrap().take();
+
+            if let Some($item) = opt {
+                break $item;
+            }
+
+            drop(data);
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        };
 
         $body
 
