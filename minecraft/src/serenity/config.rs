@@ -12,7 +12,7 @@ impl TypeMapKey for DiscordConfig {
 }
 
 #[group]
-#[commands(start, stop, save, tp)] // TODO: Macro to add commands in?
+#[commands(start, stop, save, tp, players)] // TODO: Macro to add commands in?
 struct Minecraft;
 
 pub struct MessageHandler;
@@ -42,16 +42,7 @@ impl ws_protocol::serenity::BjornMessageHandler for MessageHandler {
         http_and_cache: Arc<serenity::CacheAndHttp>,
         message: client::Message,
     ) {
-        let message = match message {
-            client::Message::StartupBegin => "Minecraft Server starting...".into(),
-            client::Message::StartupComplete => "Minecraft Server startup complete.".into(),
-            client::Message::ShutdownBegin => "Minecraft Server shutting down...".into(),
-            client::Message::ShutdownComplete => "Minecraft Server shutdown complete.".into(),
-            client::Message::Info(message) => format!("[Server] {message}"),
-            client::Message::Chat(player, message) => format!("[In-Game] {player}: {message}"),
-            client::Message::PlayerJoined(player) => format!("{player} joined the server!"),
-            client::Message::PlayerQuit(player) => format!("{player} left the server."),
-        };
+        let message = message.to_string();
 
         ws_protocol::use_data!(data, |config: DiscordConfig| {
             for channel in &config.chat_channels {

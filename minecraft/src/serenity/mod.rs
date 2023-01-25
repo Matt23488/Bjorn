@@ -24,6 +24,11 @@ pub async fn save(ctx: &Context, _: &Message) -> CommandResult {
 }
 
 #[bjorn_command(DiscordConfig)]
+pub async fn players(ctx: &Context, _: &Message) -> CommandResult {
+    dispatch(ctx, server::Message::QueryPlayers).await
+}
+
+#[bjorn_command(DiscordConfig)]
 pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
     if msg.content.len() < 4 {
         msg.reply(ctx, "You must specify a message.").await.unwrap();

@@ -15,6 +15,29 @@ pub enum Message {
     Chat(String, String),
     PlayerJoined(String),
     PlayerQuit(String),
+    PlayerDied(String, String),
+    Players(Vec<String>),
+}
+
+impl ToString for Message {
+    fn to_string(&self) -> String {
+        match self {
+            Message::StartupBegin => "Minecraft Server starting...".into(),
+            Message::StartupComplete => "Minecraft Server startup complete.".into(),
+            Message::ShutdownBegin => "Minecraft Server shutting down...".into(),
+            Message::ShutdownComplete => "Minecraft Server shutdown complete.".into(),
+            Message::Info(message) => format!("[Info] {message}"),
+            Message::Chat(player, message) => format!("[In-Game] {player}: {message}"),
+            Message::PlayerJoined(player) => format!("{player} joined the server!"),
+            Message::PlayerQuit(player) => format!("{player} left the server."),
+            Message::PlayerDied(player, message) => format!("{player} {message}."),
+            Message::Players(players) => if players.len() > 0 {
+                players.join(", ")
+            } else {
+                "There are currently no players on the server.".into()
+            }
+        }
+    }
 }
 
 pub struct Api;
