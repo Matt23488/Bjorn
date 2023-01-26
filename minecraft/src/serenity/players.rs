@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 #[derive(serde::Serialize, serde::Deserialize)]
 struct Player {
     user_id: u64,
-    names: Vec<String>,
+    name: String,
 }
 
 pub struct Players {
@@ -26,21 +26,21 @@ impl Players {
         Players { path, players }
     }
 
-    pub fn add_player_name(&mut self, user_id: u64, name: String) -> bool {
+    pub fn set_player_name(&mut self, user_id: u64, name: String) -> bool {
         if self
             .players
             .iter()
-            .find(|p| p.names.contains(&name))
+            .find(|p| p.name == name)
             .is_some()
         {
             return false;
         }
 
         match self.players.iter_mut().find(|p| p.user_id == user_id) {
-            Some(player) => player.names.push(name),
+            Some(player) => player.name = name,
             None => self.players.push(Player {
                 user_id,
-                names: vec![name],
+                name,
             }),
         }
 
@@ -57,17 +57,16 @@ impl Players {
         Some(
             self.players
                 .iter()
-                .find(|p| p.names.contains(name))?
+                .find(|p| p.name == *name)?
                 .user_id,
         )
     }
 
-    pub fn get_registered_names(&self, user_id: u64) -> Vec<&String> {
+    pub fn get_registered_name(&self, user_id: u64) -> Option<String> {
         self.players
             .iter()
             .find(|p| p.user_id == user_id)
-            .map(|p| p.names.iter().collect())
-            .unwrap_or(vec![])
+            .map(|p| p.name.clone())
     }
 }
 
