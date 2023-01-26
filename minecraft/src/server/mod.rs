@@ -66,9 +66,11 @@ impl Handler {
         let player_joined_regex = regex::Regex::new(r"(\S+) joined the game$").unwrap();
         let player_quit_regex = regex::Regex::new(r"(\S+) left the game$").unwrap();
 
-        let advancement_regex = regex::Regex::new(r"(\S+) has made the advancement [(.+)]$").unwrap();
+        let advancement_regex =
+            regex::Regex::new(r"(\S+) has made the advancement [(.+)]$").unwrap();
 
-        let death_regex = regex::Regex::new(r"\[Server thread/INFO\]: ([a-zA-Z0-9_]+) (.+)$").unwrap();
+        let death_regex =
+            regex::Regex::new(r"\[Server thread/INFO\]: ([a-zA-Z0-9_]+) (.+)$").unwrap();
 
         {
             let client_api = client_api.clone();
@@ -116,18 +118,28 @@ impl Handler {
                     client_api
                         .lock()
                         .unwrap()
-                        .send(client::Message::Info(format!("{player} has made the advancement: {advancement}!")));
+                        .send(client::Message::PlayerAdvancement(
+                            String::from(*player),
+                            String::from(*advancement),
+                        ));
 
                     return;
                 }
 
                 if let Some([player, death_message]) = captures!(death_regex, line) {
-                    if !death_message.starts_with("lost connection") && players.lock().unwrap().iter().find(|p| p == player).is_some() {
-                        client_api
+                    if !death_message.starts_with("lost connection")
+                        && players
                             .lock()
                             .unwrap()
-                            .send(client::Message::PlayerDied(String::from(*player), String::from(*death_message)));
-    
+                            .iter()
+                            .find(|p| p == player)
+                            .is_some()
+                    {
+                        client_api.lock().unwrap().send(client::Message::PlayerDied(
+                            String::from(*player),
+                            String::from(*death_message),
+                        ));
+
                         return;
                     }
                 }
@@ -186,7 +198,9 @@ impl ws_protocol::ClientApiHandler for Handler {
                 }
             }
             Message::QueryPlayers => {
-                client_api.send(client::Message::Players(self.players.lock().unwrap().clone()));
+                client_api.send(client::Message::Players(
+                    self.players.lock().unwrap().clone(),
+                ));
                 Ok(())
             }
         }

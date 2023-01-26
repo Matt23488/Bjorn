@@ -909,6 +909,7 @@ dependencies = [
  "bjorn_macro",
  "regex",
  "serde",
+ "serde_json",
  "serenity",
  "tokio",
  "ws_protocol",

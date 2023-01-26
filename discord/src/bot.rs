@@ -41,6 +41,12 @@ impl Bot {
             minecraft::DiscordConfig::new_ws_clients(&self.client);
 
         data.insert::<WsClient<minecraft::DiscordConfig>>(Mutex::new(minecraft_api_components.0));
+
+        let players = minecraft::Players::load(format!(
+            "discord_games/{}/players.json",
+            minecraft::DiscordConfig::id()
+        ));
+        data.insert::<minecraft::Players>(Arc::new(Mutex::new(players)));
         drop(data);
 
         let cancellers = Arc::new(Mutex::new(Some(vec![
@@ -83,7 +89,7 @@ where
     T: GameConfig + serde::Serialize + for<'de> serde::Deserialize<'de>,
 {
     serde_json::from_str(
-        std::fs::read_to_string(format!("discord_games/{}.json", T::id()))
+        std::fs::read_to_string(format!("discord_games/{}/config.json", T::id()))
             .expect("Could not load config")
             .as_str(),
     )

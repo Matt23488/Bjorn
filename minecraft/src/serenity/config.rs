@@ -12,7 +12,7 @@ impl TypeMapKey for DiscordConfig {
 }
 
 #[group]
-#[commands(start, stop, save, tp, players)] // TODO: Macro to add commands in?
+#[commands(start, stop, save, tp, players, player)] // TODO: Macro to add commands in?
 struct Minecraft;
 
 pub struct MessageHandler;
@@ -42,7 +42,12 @@ impl ws_protocol::serenity::BjornMessageHandler for MessageHandler {
         http_and_cache: Arc<serenity::CacheAndHttp>,
         message: client::Message,
     ) {
-        let message = message.to_string();
+        let message = {
+            let data = data.read().await;
+            let players = data.get::<Players>().unwrap().lock().unwrap();
+
+            message.to_string(&players)
+        };
 
         ws_protocol::use_data!(data, |config: DiscordConfig| {
             for channel in &config.chat_channels {
