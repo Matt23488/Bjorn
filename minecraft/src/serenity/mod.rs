@@ -105,7 +105,7 @@ pub async fn player(ctx: &Context, msg: &Message) -> CommandResult {
         return Ok(());
     }
 
-    let name = *msg_parts.get(1).unwrap();
+    let name = *msg_parts.get(0).unwrap();
 
     let success = {
         let data = ctx.data.read().await;
