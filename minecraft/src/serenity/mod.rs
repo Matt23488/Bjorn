@@ -42,71 +42,75 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
     let name = match name {
         Some(name) => name,
         None => {
-            msg.reply(ctx, "You must register your Minecraft username with !player _username_ first.").await.unwrap();
+            msg.reply(ctx, "You must register your Minecraft username with !player _username_ first.").await?;
             return Ok(());
         }
     };
 
-    let msg_parts = msg.content.split_whitespace().skip(1).collect::<Vec<_>>();
-
-    if msg_parts.is_empty() {
-        msg.reply(ctx, "You must specify a player to teleport to.").await.unwrap();
-        return Ok(());
+    match msg.content.split_whitespace().skip(1).collect::<Vec<_>>().as_slice() {
+        [] => {
+            msg.reply(ctx, "You must specify a player to teleport to.").await?;
+            Ok(())
+        }
+        [target, ..] => teleport(ctx, msg, name, *target).await,
     }
+}
 
-    let target = match Mention::from_str(ctx, msg_parts.get(0).unwrap()) {
+#[bjorn_command(DiscordConfig)]
+pub async fn player(ctx: &Context, msg: &Message) -> CommandResult {
+    match msg.content.split_whitespace().skip(1).collect::<Vec<_>>().as_slice() {
+        [] => echo_player_name(ctx, msg).await,
+        [name, ..] => register_player_name(ctx, msg, *name).await,
+    }
+}
+
+async fn teleport(ctx: &Context, msg: &Message, player: String, target: &str) -> CommandResult {
+    let target = match Mention::from_str(ctx, target) {
         Ok(mention @ Mention::User(UserId(user_id))) => {
-            let user = {
+            let target = {
                 let data = ctx.data.read().await;
                 let players = data.get::<Players>().unwrap().lock().unwrap();
                 players.get_registered_name(user_id)
             };
 
-            match user {
-                Some(user) => user,
+            match target {
+                Some(target) => target,
                 None => {
-                    msg.reply(ctx, format!("{mention} does not have their Minecraft username registered. It would be cool if they would use **!player _username_** to fix that.")).await.unwrap();
+                    msg.reply(ctx, format!("{mention} does not have their Minecraft username registered. It would be cool if they would use **!player _username_** to fix that.")).await?;
                     return Ok(());
                 }
             }
         }
         _ => {
-            String::from(*msg_parts.get(0).unwrap())
+            String::from(target)
         }
     };
 
-    if name == target {
-        msg.reply(ctx, "You can't teleport to yourself.").await.unwrap();
-        return Ok(());
+    if player == target {
+        msg.reply(ctx, "You can't teleport to yourself.").await?;
+        Ok(())
+    } else {
+        dispatch(ctx, server::Message::Tp(player, target)).await
     }
-
-    let message = server::Message::Tp(name, target);
-    dispatch(ctx, message).await
 }
 
-#[bjorn_command(DiscordConfig)]
-pub async fn player(ctx: &Context, msg: &Message) -> CommandResult {
-    let msg_parts = msg.content.split_whitespace().skip(1).collect::<Vec<_>>();
+async fn echo_player_name(ctx: &Context, msg: &Message) -> CommandResult {
+    let name = {
+        let data = ctx.data.read().await;
+        let players = data.get::<Players>().unwrap().lock().unwrap();
+        players.get_registered_name(msg.author.id.0)
+    };
 
-    if msg_parts.len() < 1 {
-        let name = {
-            let data = ctx.data.read().await;
-            let players = data.get::<Players>().unwrap().lock().unwrap();
-            players.get_registered_name(msg.author.id.0)
-        };
+    let reply = match name {
+        Some(name) => format!("Your registered Minecraft username is _{name}_."),
+        None => String::from("You don't currently have a Minecraft username registered."),
+    };
 
-        let reply = if name.is_none() {
-            String::from("You don't currently have any Minecraft usernames registered.")
-        } else {
-            format!("Your registered Minecraft username is _{}_.", name.unwrap())
-        };
+    msg.reply(ctx, reply).await?;
+    Ok(())
+}
 
-        msg.reply(ctx, reply).await.unwrap();
-        return Ok(());
-    }
-
-    let name = *msg_parts.get(0).unwrap();
-
+async fn register_player_name(ctx: &Context, msg: &Message, name: &str) -> CommandResult {
     let success = {
         let data = ctx.data.read().await;
         let mut players = data.get::<Players>().unwrap().lock().unwrap();
@@ -118,12 +122,10 @@ pub async fn player(ctx: &Context, msg: &Message) -> CommandResult {
         false => format!("Minecraft username _{name}_ is already registered."),
     };
 
-    msg.reply(ctx, reply).await.unwrap();
-
+    msg.reply(ctx, reply).await?;
     Ok(())
 }
 
-// TODO: Maybe move into macro
 async fn dispatch(ctx: &Context, message: server::Message) -> CommandResult {
     let data = ctx.data.read().await;
 
