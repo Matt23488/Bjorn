@@ -51,7 +51,7 @@ impl Message {
                 format!("{} {}.", with_mention!(players, player), message)
             }
             Message::PlayerAdvancement(player, message) => format!(
-                "{} has made the advancement: {}!",
+                "{} has made the advancement: `{}`!",
                 with_mention!(players, player),
                 message
             ),

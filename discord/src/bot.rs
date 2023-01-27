@@ -44,9 +44,16 @@ impl Bot {
 
         let players = minecraft::Players::load(format!(
             "discord_games/{}/players.json",
-            minecraft::DiscordConfig::id()
+            minecraft::DiscordConfig::id(),
         ));
         data.insert::<minecraft::Players>(Arc::new(Mutex::new(players)));
+
+        let tp_locations = minecraft::TpLocations::load(format!(
+            "discord_games/{}/tp_locations.json",
+            minecraft::DiscordConfig::id(),
+        ));
+        data.insert::<minecraft::TpLocations>(Arc::new(Mutex::new(tp_locations)));
+
         drop(data);
 
         let cancellers = Arc::new(Mutex::new(Some(vec![

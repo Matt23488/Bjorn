@@ -7,6 +7,40 @@ use serde::{Deserialize, Serialize};
 
 use crate::client;
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum RealmCoords {
+    Overworld(f64, f64, f64),
+    Nether(f64, f64, f64),
+    End(f64, f64, f64),
+}
+
+impl RealmCoords {
+    pub fn new(realm: &str, x: f64, y: f64, z: f64) -> Option<RealmCoords> {
+        match realm {
+            "o" => Some(RealmCoords::Overworld(x, y, z)),
+            "n" => Some(RealmCoords::Nether(x, y, z)),
+            "e" => Some(RealmCoords::End(x, y, z)),
+            _ => None,
+        }
+    }
+
+    pub fn realm_string(&self) -> String {
+        match self {
+            RealmCoords::Overworld(_, _, _) => String::from("minecraft:overworld"),
+            RealmCoords::Nether(_, _, _) => String::from("minecraft:the_nether"),
+            RealmCoords::End(_, _, _) => String::from("minecraft:the_end"),
+        }
+    }
+
+    pub fn coords(&self) -> (f64, f64, f64) {
+        match self {
+            RealmCoords::Overworld(x, y, z) => (*x, *y, *z),
+            RealmCoords::Nether(x, y, z) => (*x, *y, *z),
+            RealmCoords::End(x, y, z) => (*x, *y, *z),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
     Start,
@@ -14,6 +48,7 @@ pub enum Message {
     Save,
     Chat(String, String),
     Tp(String, String),
+    TpLoc(String, RealmCoords),
     QueryPlayers,
 }
 
@@ -67,7 +102,7 @@ impl Handler {
         let player_quit_regex = regex::Regex::new(r"([a-zA-Z0-9_]+) left the game$").unwrap();
 
         let advancement_regex =
-            regex::Regex::new(r"([a-zA-Z0-9_]+) has made the advancement [(.+)]$").unwrap();
+            regex::Regex::new(r"([a-zA-Z0-9_]+) has made the advancement \[(.+)\]$").unwrap();
 
         let death_regex =
             regex::Regex::new(r"\[Server thread/INFO\]: ([a-zA-Z0-9_]+) (.+)$").unwrap();
@@ -193,6 +228,13 @@ impl ws_protocol::ClientApiHandler for Handler {
             }
             Message::Tp(player, target) => {
                 match self.server_process.tp(player.as_str(), target.as_str()) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(e),
+                }
+            }
+            Message::TpLoc(player, coords) => {
+                let (x, y, z) = coords.coords();
+                match self.server_process.tp_loc(player.as_str(), coords.realm_string().as_str(), x, y, z) {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e),
                 }
