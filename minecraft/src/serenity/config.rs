@@ -22,8 +22,8 @@ impl ws_protocol::serenity::BjornMessageHandler for MessageHandler {
     type Handler = client::Handler;
 
     async fn client_message(
-        ctx: &serenity::prelude::Context,
-        msg: &serenity::model::prelude::Message,
+        ctx: &Context,
+        msg: &Message,
     ) {
         let data = ctx.data.read().await;
         let api = data
@@ -33,12 +33,12 @@ impl ws_protocol::serenity::BjornMessageHandler for MessageHandler {
             .unwrap();
         api.send(server::Message::Chat(
             msg.author.name.clone(),
-            msg.content.clone(),
+            msg.content.replace("\n", " "),
         ));
     }
 
     async fn server_message(
-        data: Arc<tokio::sync::RwLock<serenity::prelude::TypeMap>>,
+        data: Arc<tokio::sync::RwLock<TypeMap>>,
         http_and_cache: Arc<serenity::CacheAndHttp>,
         message: client::Message,
     ) {

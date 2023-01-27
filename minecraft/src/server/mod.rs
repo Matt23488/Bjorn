@@ -58,16 +58,16 @@ impl Handler {
         let players = Arc::new(Mutex::new(vec![]));
 
         let client_api = Arc::new(Mutex::new(client_api));
-        let chat_regex = regex::Regex::new(r"<(\S+)>\s(.*)|\*\s(\S+)\s(.*)$").unwrap();
+        let chat_regex = regex::Regex::new(r"<([a-zA-Z0-9_]+)>\s(.*)|\*\s([a-zA-Z0-9_]+)\s(.*)$").unwrap();
         let startup_finished_regex =
             regex::Regex::new(r#"\[Server thread/INFO\]: Done \(.+\)! For help, type "help"$"#)
                 .unwrap();
 
-        let player_joined_regex = regex::Regex::new(r"(\S+) joined the game$").unwrap();
-        let player_quit_regex = regex::Regex::new(r"(\S+) left the game$").unwrap();
+        let player_joined_regex = regex::Regex::new(r"([a-zA-Z0-9_]+) joined the game$").unwrap();
+        let player_quit_regex = regex::Regex::new(r"([a-zA-Z0-9_]+) left the game$").unwrap();
 
         let advancement_regex =
-            regex::Regex::new(r"(\S+) has made the advancement [(.+)]$").unwrap();
+            regex::Regex::new(r"([a-zA-Z0-9_]+) has made the advancement [(.+)]$").unwrap();
 
         let death_regex =
             regex::Regex::new(r"\[Server thread/INFO\]: ([a-zA-Z0-9_]+) (.+)$").unwrap();

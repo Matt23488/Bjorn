@@ -11,6 +11,12 @@ pub use self::config::*;
 mod players;
 pub use players::*;
 
+macro_rules! command_args {
+    ($text:expr) => {
+        $text.split_whitespace().skip(1).collect::<Vec<_>>().as_slice()
+    }
+}
+
 #[bjorn_command(DiscordConfig)]
 pub async fn start(ctx: &Context, _: &Message) -> CommandResult {
     dispatch(ctx, server::Message::Start).await
@@ -47,7 +53,7 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
         }
     };
 
-    match msg.content.split_whitespace().skip(1).collect::<Vec<_>>().as_slice() {
+    match command_args!(msg.content) {
         [] => {
             msg.reply(ctx, "You must specify a player to teleport to.").await?;
             Ok(())
@@ -58,7 +64,7 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[bjorn_command(DiscordConfig)]
 pub async fn player(ctx: &Context, msg: &Message) -> CommandResult {
-    match msg.content.split_whitespace().skip(1).collect::<Vec<_>>().as_slice() {
+    match command_args!(msg.content) {
         [] => echo_player_name(ctx, msg).await,
         [name, ..] => register_player_name(ctx, msg, *name).await,
     }
