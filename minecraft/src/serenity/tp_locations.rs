@@ -2,10 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use serde::{Serialize, Deserialize};
 
-use crate::server::RealmCoords;
+use crate::{server::RealmCoords, Json};
 
 #[derive(Serialize, Deserialize)]
-struct TpLocation {
+pub struct TpLocation {
     name: String,
     coords: RealmCoords,
 }
@@ -15,21 +15,30 @@ pub struct TpLocations {
     locations: Vec<TpLocation>,
 }
 
-impl TpLocations {
-    pub fn load(path: String) -> TpLocations {
-        let locations = match std::fs::read_to_string(&path) {
-            Ok(json) => {
-                serde_json::from_str::<Vec<TpLocation>>(&json).expect("Error parsing tp location list.")
-            }
-            Err(_) => {
-                std::fs::write(&path, "[]").expect("Error accessing tp location config path.");
-                vec![]
-            }
-        };
+impl Json for TpLocations {
+    type JsonType = Vec<TpLocation>;
 
-        TpLocations { path, locations }
+    fn name() -> &'static str {
+        "tp location"
     }
 
+    fn empty_json_str() -> &'static str {
+        "[]"
+    }
+
+    fn empty_json() -> Self::JsonType {
+        vec![]
+    }
+
+    fn new(path: String, data: Self::JsonType) -> Self {
+        TpLocations {
+            path,
+            locations: data,
+        }
+    }
+}
+
+impl TpLocations {
     pub fn get_coords(&self, name: &str) -> Option<RealmCoords> {
         Some(self.locations.iter().find(|l| l.name == name)?.coords)
     }
@@ -49,11 +58,7 @@ impl TpLocations {
             coords,
         });
 
-        std::fs::write(
-            &self.path,
-            serde_json::to_string(&self.locations).expect("Error serializing tp location list."),
-        )
-        .expect("Error modifying tp location list.");
+        Self::save(&self.path, &self.locations);
 
         true
     }

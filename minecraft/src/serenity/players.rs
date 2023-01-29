@@ -1,7 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-#[derive(serde::Serialize, serde::Deserialize)]
-struct Player {
+use serde::{Serialize, Deserialize};
+
+use super::json::Json;
+
+#[derive(Serialize, Deserialize)]
+pub struct Player {
     user_id: u64,
     name: String,
 }
@@ -11,21 +15,30 @@ pub struct Players {
     players: Vec<Player>,
 }
 
-impl Players {
-    pub fn load(path: String) -> Players {
-        let players = match std::fs::read_to_string(&path) {
-            Ok(json) => {
-                serde_json::from_str::<Vec<Player>>(&json).expect("Error parsing player list.")
-            }
-            Err(_) => {
-                std::fs::write(&path, "[]").expect("Error accessing player config path.");
-                vec![]
-            }
-        };
+impl Json for Players {
+    type JsonType = Vec<Player>;
 
-        Players { path, players }
+    fn name() -> &'static str {
+        "player"
     }
 
+    fn empty_json_str() -> &'static str {
+        "[]"
+    }
+
+    fn empty_json() -> Self::JsonType {
+        vec![]
+    }
+
+    fn new(path: String, data: Self::JsonType) -> Self {
+        Players {
+            path,
+            players: data,
+        }
+    }
+}
+
+impl Players {
     pub fn set_player_name(&mut self, user_id: u64, name: String) -> bool {
         if self
             .players
@@ -44,11 +57,7 @@ impl Players {
             }),
         }
 
-        std::fs::write(
-            &self.path,
-            serde_json::to_string(&self.players).expect("Error serializing player list."),
-        )
-        .expect("Error modifying player list.");
+        Self::save(&self.path, &self.players);
 
         true
     }

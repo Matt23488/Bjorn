@@ -8,6 +8,9 @@ use crate::{client, server::{self, RealmCoords}};
 mod config;
 pub use self::config::*;
 
+mod json;
+pub use json::*;
+
 mod players;
 pub use players::*;
 
