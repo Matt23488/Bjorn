@@ -63,10 +63,17 @@ fn impl_bjorn_command(attr: &syn::AttributeArgs, item: &syn::ItemFn) -> TokenStr
 
         #[serenity::framework::standard::macros::command]
         async fn #command_name(ctx: &serenity::prelude::Context, msg: &serenity::model::prelude::Message) -> serenity::framework::standard::CommandResult {
-            let data = ctx.data.read().await;
+            let config = loop {
+                let data = ctx.data.read().await;
+                let config = data.get::<#config>().unwrap().lock().unwrap().take();
 
-            let config = data.get::<#config>().unwrap().lock().unwrap().take().unwrap();
-            drop(data);
+                if let Some(config) = config {
+                    break config;
+                }
+    
+                drop(data);
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            };
 
             let has_permission = config.has_necessary_permissions(ctx, msg, #role_path).await;
 
