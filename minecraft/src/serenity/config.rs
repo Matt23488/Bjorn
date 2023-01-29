@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use discord_config::{use_data, GameConfig};
 use serenity::{
     async_trait, framework::standard::macros::group, model::prelude::Message, prelude::*,
 };
-use ws_protocol::serenity::GameConfig;
 
 use super::*;
 
@@ -18,13 +18,10 @@ struct Minecraft;
 pub struct MessageHandler;
 
 #[async_trait]
-impl ws_protocol::serenity::BjornMessageHandler for MessageHandler {
+impl discord_config::BjornMessageHandler for MessageHandler {
     type Handler = client::Handler;
 
-    async fn client_message(
-        ctx: &Context,
-        msg: &Message,
-    ) {
+    async fn client_message(ctx: &Context, msg: &Message) {
         let data = ctx.data.read().await;
         let api = data
             .get::<ws_protocol::WsClient<server::Api>>()
@@ -49,7 +46,7 @@ impl ws_protocol::serenity::BjornMessageHandler for MessageHandler {
             message.to_string(&players)
         };
 
-        ws_protocol::use_data!(data, |config: DiscordConfig| {
+        use_data!(data, |config: DiscordConfig| {
             for channel in &config.chat_channels {
                 http_and_cache
                     .cache
@@ -99,7 +96,7 @@ impl GameConfig for DiscordConfig {
         &self,
         ctx: &Context,
         msg: &Message,
-        role: ws_protocol::serenity::Role,
+        role: discord_config::Role,
     ) -> bool {
         let guild_id = match msg.guild_id {
             Some(guild_id) => guild_id,
@@ -116,7 +113,7 @@ impl GameConfig for DiscordConfig {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct DiscordConfig {
-    roles: ws_protocol::serenity::RoleConfig,
+    roles: discord_config::RoleConfig,
     listen_channels: Vec<u64>,
     chat_channels: Vec<u64>,
 }

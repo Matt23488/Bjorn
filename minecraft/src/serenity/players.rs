@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::json::Json;
 
@@ -40,21 +40,13 @@ impl Json for Players {
 
 impl Players {
     pub fn set_player_name(&mut self, user_id: u64, name: String) -> bool {
-        if self
-            .players
-            .iter()
-            .find(|p| p.name == name)
-            .is_some()
-        {
+        if self.players.iter().find(|p| p.name == name).is_some() {
             return false;
         }
 
         match self.players.iter_mut().find(|p| p.user_id == user_id) {
             Some(player) => player.name = name,
-            None => self.players.push(Player {
-                user_id,
-                name,
-            }),
+            None => self.players.push(Player { user_id, name }),
         }
 
         Self::save(&self.path, &self.players);
@@ -63,12 +55,7 @@ impl Players {
     }
 
     pub fn get_user_id(&self, name: &String) -> Option<u64> {
-        Some(
-            self.players
-                .iter()
-                .find(|p| p.name == *name)?
-                .user_id,
-        )
+        Some(self.players.iter().find(|p| p.name == *name)?.user_id)
     }
 
     pub fn get_registered_name(&self, user_id: u64) -> Option<String> {

@@ -91,8 +91,17 @@ impl MinecraftServerProcess {
         self.send_to_stdin(format!("tp {player} {target}\n").as_bytes())
     }
 
-    pub fn tp_loc(&mut self, player: &str, realm: &str, x: f64, y: f64, z: f64) -> Result<(), MinecraftServerProcessError> {
-        self.send_to_stdin(format!("execute as {player} in {realm} run teleport {x} {y} {z}\n").as_bytes())
+    pub fn tp_loc(
+        &mut self,
+        player: &str,
+        realm: &str,
+        x: f64,
+        y: f64,
+        z: f64,
+    ) -> Result<(), MinecraftServerProcessError> {
+        self.send_to_stdin(
+            format!("execute as {player} in {realm} run teleport {x} {y} {z}\n").as_bytes(),
+        )
     }
 
     fn send_to_stdin(&mut self, bytes: &[u8]) -> Result<(), MinecraftServerProcessError> {

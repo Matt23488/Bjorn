@@ -1,5 +1,5 @@
+use discord_config::{use_data, BjornMessageHandler};
 use serenity::{async_trait, model::prelude::Message, prelude::*};
-use ws_protocol::serenity::BjornMessageHandler;
 
 pub struct BjornHandler;
 
@@ -11,7 +11,7 @@ impl EventHandler for BjornHandler {
             return;
         }
 
-        ws_protocol::use_data!(ctx.data, |minecraft_config: minecraft::DiscordConfig| {
+        use_data!(ctx.data, |minecraft_config: minecraft::DiscordConfig| {
             if minecraft_config.is_chat_channel(msg.channel_id) {
                 minecraft::MessageHandler::client_message(&ctx, &msg).await;
             }

@@ -299,12 +299,23 @@ dependencies = [
 name = "discord"
 version = "0.1.0"
 dependencies = [
+ "discord_config",
  "futures-util",
  "minecraft",
  "serde",
  "serde_json",
  "serenity",
  "serenity_ctrlc",
+ "tokio",
+ "ws_protocol",
+]
+
+[[package]]
+name = "discord_config"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serenity",
  "tokio",
  "ws_protocol",
 ]
@@ -907,6 +918,7 @@ name = "minecraft"
 version = "0.1.0"
 dependencies = [
  "bjorn_macro",
+ "discord_config",
  "regex",
  "serde",
  "serde_json",

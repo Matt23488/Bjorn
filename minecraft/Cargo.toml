@@ -6,10 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ws_protocol = { path = "../ws_protocol", features = ["serenity"] }
 bjorn_macro = { path = "../bjorn_macro" }
+discord_config = { path = "../discord_config" }
 regex = "1.7.1"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = { version = "1.0.91" }
 serenity = { version = "0.11.5", features = ["client", "model", "gateway", "rustls_backend"] }
 tokio = { version = "1.24.1", features = ["rt", "time"] }
+ws_protocol = { path = "../ws_protocol", features = ["serenity"] }

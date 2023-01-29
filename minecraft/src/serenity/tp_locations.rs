@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::{server::RealmCoords, Json};
 
@@ -44,19 +44,11 @@ impl TpLocations {
     }
 
     pub fn save_coords(&mut self, name: String, coords: RealmCoords) -> bool {
-        if self
-            .locations
-            .iter()
-            .find(|l| l.name == name)
-            .is_some()
-        {
+        if self.locations.iter().find(|l| l.name == name).is_some() {
             return false;
         }
 
-        self.locations.push(TpLocation {
-            name,
-            coords,
-        });
+        self.locations.push(TpLocation { name, coords });
 
         Self::save(&self.path, &self.locations);
 

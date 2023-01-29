@@ -3,6 +3,7 @@
 members = [
     "bjorn_macro",
     "discord",
+    "discord_config",
     "game_manager",
     "minecraft",
     "web",

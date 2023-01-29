@@ -93,7 +93,8 @@ impl Handler {
         let players = Arc::new(Mutex::new(vec![]));
 
         let client_api = Arc::new(Mutex::new(client_api));
-        let chat_regex = regex::Regex::new(r"<([a-zA-Z0-9_]+)>\s(.*)|\*\s([a-zA-Z0-9_]+)\s(.*)$").unwrap();
+        let chat_regex =
+            regex::Regex::new(r"<([a-zA-Z0-9_]+)>\s(.*)|\*\s([a-zA-Z0-9_]+)\s(.*)$").unwrap();
         let startup_finished_regex =
             regex::Regex::new(r#"\[Server thread/INFO\]: Done \(.+\)! For help, type "help"$"#)
                 .unwrap();
@@ -234,7 +235,13 @@ impl ws_protocol::ClientApiHandler for Handler {
             }
             Message::TpLoc(player, coords) => {
                 let (x, y, z) = coords.coords();
-                match self.server_process.tp_loc(player.as_str(), coords.realm_string().as_str(), x, y, z) {
+                match self.server_process.tp_loc(
+                    player.as_str(),
+                    coords.realm_string().as_str(),
+                    x,
+                    y,
+                    z,
+                ) {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e),
                 }

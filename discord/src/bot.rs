@@ -4,12 +4,13 @@ use std::{
 };
 
 mod handler;
+use discord_config::GameConfig;
 use handler::*;
 
 use minecraft::Json;
 use serenity::{framework::StandardFramework, prelude::*};
 use serenity_ctrlc::Ext;
-use ws_protocol::{serenity::GameConfig, WsTask};
+use ws_protocol::WsTask;
 
 pub struct Bot {
     client: serenity::Client,
@@ -104,7 +105,7 @@ where
     .expect("Could not deserialize config")
 }
 
-type WsClient<T> = ws_protocol::WsClient<<T as ws_protocol::serenity::GameConfig>::Api>;
+type WsClient<T> = ws_protocol::WsClient<<T as GameConfig>::Api>;
 
 impl UninitializedBot {
     pub async fn init(mut self) -> Result<Bot, Error> {

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use discord_config::BjornMessageHandler;
 use serde::{Deserialize, Serialize};
 use serenity::model::prelude::{Mention, UserId};
-use ws_protocol::serenity::BjornMessageHandler;
 
 use crate::{MessageHandler, Players};
 

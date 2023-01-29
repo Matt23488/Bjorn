@@ -19,7 +19,7 @@ fn impl_bjorn_command(attr: &syn::AttributeArgs, item: &syn::ItemFn) -> TokenStr
     let user_fn_ident = user_fn.sig.ident.clone();
 
     let mut admin_already_set = false;
-    let mut role_path = quote!(ws_protocol::serenity::Role::User);
+    let mut role_path = quote!(discord_config::Role::User);
     let mut config = None;
 
     let mut admin_err = None;
@@ -34,7 +34,7 @@ fn impl_bjorn_command(attr: &syn::AttributeArgs, item: &syn::ItemFn) -> TokenStr
                             path.span() => compile_error!("You've already declared admin on this command.");
                         });
                     } else {
-                        role_path = quote!(ws_protocol::serenity::Role::Admin);
+                        role_path = quote!(discord_config::Role::Admin);
                         admin_already_set = true;
                     }
 
@@ -63,28 +63,12 @@ fn impl_bjorn_command(attr: &syn::AttributeArgs, item: &syn::ItemFn) -> TokenStr
 
         #[serenity::framework::standard::macros::command]
         async fn #command_name(ctx: &serenity::prelude::Context, msg: &serenity::model::prelude::Message) -> serenity::framework::standard::CommandResult {
-            let config = loop {
-                let data = ctx.data.read().await;
-                let config = data.get::<#config>().unwrap().lock().unwrap().take();
-
-                if let Some(config) = config {
-                    break config;
+            discord_config::use_data!(ctx.data, |config: #config| {
+                if !config.has_necessary_permissions(ctx, msg, #role_path).await {
+                    msg.reply(ctx, "You don't have permission.").await?;
+                    return Ok(());
                 }
-    
-                drop(data);
-                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-            };
-
-            let has_permission = config.has_necessary_permissions(ctx, msg, #role_path).await;
-
-            let data = ctx.data.read().await;
-            data.get::<#config>().unwrap().lock().unwrap().replace(config);
-            drop(data);
-
-            if !has_permission {
-                msg.reply(ctx, "You don't have permission.").await.unwrap();
-                return Ok(());
-            }
+            });
 
             #user_fn_ident(ctx, msg).await
         }

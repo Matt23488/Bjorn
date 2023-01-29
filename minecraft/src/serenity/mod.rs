@@ -1,9 +1,17 @@
 use bjorn_macro::bjorn_command;
-use serenity::{framework::standard::CommandResult, model::prelude::{Message, Mention, UserId}, prelude::*, cache::FromStrAndCache};
+use serenity::{
+    cache::FromStrAndCache,
+    framework::standard::CommandResult,
+    model::prelude::{Mention, Message, UserId},
+    prelude::*,
+};
 
-use ws_protocol::serenity::GameConfig;
+use discord_config::GameConfig;
 
-use crate::{client, server::{self, RealmCoords}};
+use crate::{
+    client,
+    server::{self, RealmCoords},
+};
 
 mod config;
 pub use self::config::*;
@@ -19,8 +27,12 @@ pub use tp_locations::*;
 
 macro_rules! command_args {
     ($text:expr) => {
-        $text.split_whitespace().skip(1).collect::<Vec<_>>().as_slice()
-    }
+        $text
+            .split_whitespace()
+            .skip(1)
+            .collect::<Vec<_>>()
+            .as_slice()
+    };
 }
 
 #[bjorn_command(DiscordConfig)]
@@ -54,7 +66,11 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
     let name = match name {
         Some(name) => name,
         None => {
-            msg.reply(ctx, "You must register your Minecraft username with `!player <username>` first.").await?;
+            msg.reply(
+                ctx,
+                "You must register your Minecraft username with `!player <username>` first.",
+            )
+            .await?;
             return Ok(());
         }
     };
@@ -100,9 +116,7 @@ async fn teleport(ctx: &Context, msg: &Message, player: String, target: &str) ->
                 }
             }
         }
-        _ => {
-            String::from(target)
-        }
+        _ => String::from(target),
     };
 
     if player == target {
@@ -113,7 +127,12 @@ async fn teleport(ctx: &Context, msg: &Message, player: String, target: &str) ->
     }
 }
 
-async fn tp_saved_location(ctx: &Context, msg: &Message, player: String, target: &str) -> CommandResult {
+async fn tp_saved_location(
+    ctx: &Context,
+    msg: &Message,
+    player: String,
+    target: &str,
+) -> CommandResult {
     let coords = {
         let data = ctx.data.read().await;
         let tp_locations = data.get::<TpLocations>().unwrap().lock().unwrap();
@@ -123,7 +142,11 @@ async fn tp_saved_location(ctx: &Context, msg: &Message, player: String, target:
     let coords = match coords {
         Some(coords) => coords,
         None => {
-            msg.reply(ctx, format!("No saved coordinates with name `{target}` exists.")).await?;
+            msg.reply(
+                ctx,
+                format!("No saved coordinates with name `{target}` exists."),
+            )
+            .await?;
             return Ok(());
         }
     };
@@ -146,7 +169,15 @@ async fn send_tp_set_help_text(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-async fn save_tp_location(ctx: &Context, msg: &Message, name: &str, realm: &str, x: &str, y: &str, z: &str) -> CommandResult {
+async fn save_tp_location(
+    ctx: &Context,
+    msg: &Message,
+    name: &str,
+    realm: &str,
+    x: &str,
+    y: &str,
+    z: &str,
+) -> CommandResult {
     let x = x.parse::<f64>();
     let y = y.parse::<f64>();
     let z = z.parse::<f64>();
