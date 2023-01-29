@@ -103,7 +103,7 @@ impl Handler {
         let player_quit_regex = regex::Regex::new(r"([a-zA-Z0-9_]+) left the game$").unwrap();
 
         let advancement_regex =
-            regex::Regex::new(r"([a-zA-Z0-9_]+) has made the advancement \[(.+)\]$").unwrap();
+            regex::Regex::new(r"([a-zA-Z0-9_]+) has (made the advancement|reached the goal|completed the challenge) \[(.+)\]$").unwrap();
 
         let death_regex =
             regex::Regex::new(r"\[Server thread/INFO\]: ([a-zA-Z0-9_]+) (.+)$").unwrap();
@@ -150,12 +150,13 @@ impl Handler {
                     return;
                 }
 
-                if let Some([player, advancement]) = captures!(advancement_regex, line) {
+                if let Some([player, text, advancement]) = captures!(advancement_regex, line) {
                     client_api
                         .lock()
                         .unwrap()
                         .send(client::Message::PlayerAdvancement(
                             String::from(*player),
+                            String::from(*text),
                             String::from(*advancement),
                         ));
 

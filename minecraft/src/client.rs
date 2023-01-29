@@ -17,7 +17,7 @@ pub enum Message {
     PlayerJoined(String),
     PlayerQuit(String),
     PlayerDied(String, String),
-    PlayerAdvancement(String, String),
+    PlayerAdvancement(String, String, String),
     Players(Vec<String>),
 }
 
@@ -50,10 +50,11 @@ impl Message {
             Message::PlayerDied(player, message) => {
                 format!("{} {}.", with_mention!(players, player), message)
             }
-            Message::PlayerAdvancement(player, message) => format!(
-                "{} has made the advancement: `{}`!",
+            Message::PlayerAdvancement(player, text, advancement) => format!(
+                "{} has {} `{}`!",
                 with_mention!(players, player),
-                message
+                text,
+                advancement,
             ),
             Message::Players(player_list) => {
                 if player_list.len() > 0 {

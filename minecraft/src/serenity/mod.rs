@@ -199,7 +199,7 @@ async fn save_tp_location(
     };
 
     let reply = match success {
-        true => format!("Minecraft teleport location `{name}` saved as {coords:?}."),
+        true => format!("Minecraft teleport location `{name}` saved as `{coords:?}`."),
         false => format!("Minecraft teleport location `{name}` is already registered."),
     };
 
