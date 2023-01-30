@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use discord_config::{use_data, GameConfig};
 use serenity::{
-    async_trait, framework::standard::macros::group, model::prelude::Message, prelude::*,
+    async_trait, framework::standard::macros::group, model::prelude::Message, prelude::*, http::Typing,
 };
 
 use super::*;
@@ -39,23 +39,49 @@ impl discord_config::BjornMessageHandler for MessageHandler {
         http_and_cache: Arc<serenity::CacheAndHttp>,
         message: client::Message,
     ) {
-        let message = {
+        let (has_follow_up, message) = {
             let data = data.read().await;
             let players = data.get::<Players>().unwrap().lock().unwrap();
 
-            message.to_string(&players)
+            (
+                message.indicates_follow_up(),
+                message.to_string(&players),
+            )
         };
 
         use_data!(data, |config: DiscordConfig| {
+            let mut typing_results = vec![];
             for channel in &config.chat_channels {
-                http_and_cache
+                let channel = http_and_cache
                     .cache
                     .channel(*channel)
                     .unwrap()
-                    .id()
+                    .id();
+
+                channel
                     .send_message(http_and_cache.http.clone(), |msg| msg.content(&message))
                     .await
                     .unwrap();
+
+                if has_follow_up {
+                    if let Ok(typing) = channel.start_typing(&http_and_cache.http) {
+                        typing_results.push(typing);
+                    }
+                }
+            }
+
+            let mut data = data.write().await;
+            if has_follow_up {
+                data.insert::<TypingResults>(Arc::new(Mutex::new(Some(TypingResults(typing_results)))));
+            } else {
+                if let Some(typing_results) = data.remove::<TypingResults>() {
+                    if let Some(typing_results) = typing_results.lock().unwrap().take() {
+                        typing_results.0
+                            .into_iter()
+                            .map(Typing::stop)
+                            .for_each(Option::unwrap_or_default);
+                    }
+                }
             }
         });
     }
@@ -122,4 +148,10 @@ impl DiscordConfig {
     pub fn is_chat_channel(&self, channel_id: serenity::model::prelude::ChannelId) -> bool {
         self.chat_channels.contains(&channel_id.0)
     }
+}
+
+struct TypingResults(Vec<Typing>);
+
+impl TypeMapKey for TypingResults {
+    type Value = Arc<Mutex<Option<TypingResults>>>;
 }

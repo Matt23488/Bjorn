@@ -211,12 +211,15 @@ impl ws_protocol::ClientApiHandler for Handler {
                 Ok(_) => Ok(client_api.send(client::Message::StartupBegin)),
                 Err(e) => Err(e),
             },
-            Message::Stop => {
-                client_api.send(client::Message::ShutdownBegin);
-                match self.server_process.stop() {
-                    Ok(_) => Ok(client_api.send(client::Message::ShutdownComplete)),
-                    Err(e) => Err(e),
+            Message::Stop => match self.server_process.is_running() {
+                true => {
+                    client_api.send(client::Message::ShutdownBegin);
+                    match self.server_process.stop() {
+                        Ok(_) => Ok(client_api.send(client::Message::ShutdownComplete)),
+                        Err(e) => Err(e),
+                    }
                 }
+                false => Ok(client_api.send(client::Message::Info("Server is already stopped.".into()))),
             }
             Message::Save => match self.server_process.save() {
                 Ok(_) => Ok(client_api.send(client::Message::Info("World saved.".into()))),

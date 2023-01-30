@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{server::RealmCoords, Json};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TpLocation {
-    name: String,
-    coords: RealmCoords,
+    pub name: String,
+    pub coords: RealmCoords,
 }
 
 pub struct TpLocations {
@@ -53,6 +53,10 @@ impl TpLocations {
         Self::save(&self.path, &self.locations);
 
         true
+    }
+
+    pub fn all(&self) -> Vec<TpLocation> {
+        self.locations.clone()
     }
 }
 

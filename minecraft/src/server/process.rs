@@ -117,6 +117,10 @@ impl MinecraftServerProcess {
 
         Ok(())
     }
+
+    pub fn is_running(&self) -> bool {
+        self.minecraft.is_some()
+    }
 }
 
 #[derive(Debug)]

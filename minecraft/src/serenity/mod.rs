@@ -3,7 +3,7 @@ use serenity::{
     cache::FromStrAndCache,
     framework::standard::CommandResult,
     model::prelude::{Mention, Message, UserId},
-    prelude::*,
+    prelude::*, utils::Color,
 };
 
 use discord_config::GameConfig;
@@ -76,11 +76,8 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
     };
 
     match command_args!(msg.content) {
-        [] => {
-            // TODO: embed
-            msg.reply(ctx, "You must specify a player or saved location to teleport to, or `!tp set <name> <o|n|e> <x> <y> <z>` to create a saved location.").await?;
-            Ok(())
-        }
+        [] => send_tp_help_text(ctx, msg).await,
+        ["set", "list"] => list_saved_locations(ctx, msg).await,
         ["set", name, realm, x, y, z] => save_tp_location(ctx, msg, name, realm, x, y, z).await,
         ["set", ..] => send_tp_set_help_text(ctx, msg).await,
         [target, ..] => teleport(ctx, msg, name, target).await,
@@ -154,15 +151,67 @@ async fn tp_saved_location(
     dispatch(ctx, server::Message::TpLoc(player, coords)).await
 }
 
+async fn list_saved_locations(ctx: &Context, msg: &Message) -> CommandResult {
+    let locations = {
+        let data = ctx.data.read().await;
+        let tp_locations = data.get::<TpLocations>().unwrap().lock().unwrap();
+        tp_locations.all()
+    };
+
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                let e = e.title("Saved Locations")
+                    .color(Color::ROSEWATER);
+
+                locations.into_iter().fold(e, |e, loc| e.field(loc.name, format!("`{:?}`", loc.coords), true))
+            })
+        })
+        .await?;
+
+    Ok(())
+}
+
+async fn send_tp_help_text(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id.send_message(ctx, |m| {
+        m.embed(|e| {
+            e.title("Teleporting to a player")
+                .color(Color::BLITZ_BLUE)
+                .description("To teleport to a player, the command must match this format:")
+                .field("format", "`!tp <player>`", false)
+                .field("player", "Either the in-game player name you wish to teleport to (case-sensitive), or if they have registered themselves with the `!player` command, their discord mention.", true)
+        })
+        .add_embed(|e| {
+            e.title("Teleporting to a saved location")
+                .color(Color::BLURPLE)
+                .description("To teleport to a saved location, the command must match this format:")
+                .field("format", "`!tp $<location>`", false)
+                .field("location", "The name of the saved location prefixed with a dollar-sign (e.g. `!tp $home`).", true)
+        })
+        .reference_message(msg)
+    }).await?;
+
+    send_tp_set_help_text(ctx, msg).await?;
+
+    Ok(())
+}
+
 async fn send_tp_set_help_text(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id.send_message(ctx, |m| {
         m.embed(|e| {
             e.title("Setting a saved location")
+                .color(Color::FADED_PURPLE)
                 .description("To set a saved location, the command must match this format:")
                 .field("format", "`!tp set <name> <o|n|e> <x> <y> <z>`", false)
                 .field("name", "An alphanumeric name to give to the location.", true)
                 .field("o|n|e", "Which realm the location is contained in. `o` for Overworld, `n` for Nether, or `e` for The End.", true)
                 .field("x y z", "The 3D coordinates to save, separated by spaces. To obtain these, press F3 in game and your current coordinates are near the top on the left side of the screen.", true)
+        })
+        .add_embed(|e| {
+            e.title("Listing saved locations")
+                .color(Color::FOOYOO)
+                .description("To list all saved locations, use the command with these arguments:")
+                .field("format", "`!tp set list`", false)
         })
         .reference_message(msg)
     }).await?;

@@ -69,6 +69,14 @@ impl Message {
             }
         }
     }
+
+    pub fn indicates_follow_up(&self) -> bool {
+        match self {
+            Message::StartupBegin |
+            Message::ShutdownBegin => true,
+            _ => false,
+        }
+    }
 }
 
 pub struct Api;
