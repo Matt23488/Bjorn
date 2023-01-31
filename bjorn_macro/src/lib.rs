@@ -63,12 +63,18 @@ fn impl_bjorn_command(attr: &syn::AttributeArgs, item: &syn::ItemFn) -> TokenStr
 
         #[serenity::framework::standard::macros::command]
         async fn #command_name(ctx: &serenity::prelude::Context, msg: &serenity::model::prelude::Message) -> serenity::framework::standard::CommandResult {
-            discord_config::use_data!(ctx.data, |config: #config| {
+            let denied = discord_config::use_data!(ctx.data, |config: #config| {
                 if !config.has_necessary_permissions(ctx, msg, #role_path).await {
                     msg.reply(ctx, "You don't have permission.").await?;
-                    return Ok(());
+                    true
+                } else {
+                    false
                 }
             });
+
+            if denied {
+                return Ok(());
+            }
 
             #user_fn_ident(ctx, msg).await
         }

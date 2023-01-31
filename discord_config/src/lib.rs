@@ -134,7 +134,7 @@ pub trait BjornMessageHandler {
 
 #[macro_export]
 macro_rules! use_data {
-    ($data:expr, |$item:ident: $key:ty| $body:block) => {
+    ($data:expr, |$item:ident: $key:ty| $body:block) => {{
         let $item = loop {
             let data = $data.read().await;
             let opt = data.get::<$key>().unwrap().lock().unwrap().take();
@@ -147,10 +147,12 @@ macro_rules! use_data {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         };
 
-        $body
+        let result = $body;
 
         let data = $data.read().await;
         data.get::<$key>().unwrap().lock().unwrap().replace($item);
         drop(data);
-    }
+
+        result
+    }};
 }
