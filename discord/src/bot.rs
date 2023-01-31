@@ -4,113 +4,50 @@ use std::{
 };
 
 mod handler;
-use discord_config::GameConfig;
 use handler::*;
 
-use minecraft::Json;
 use serenity::{framework::StandardFramework, prelude::*};
 use serenity_ctrlc::Ext;
-use ws_protocol::WsTask;
+
+type SetupFn = Box<
+    dyn FnOnce(
+        discord_config::DiscordGameSetupData,
+        &mut serenity::prelude::TypeMap,
+        &mut discord_config::Canceller,
+    ) -> Result<(), ()>,
+>;
 
 pub struct Bot {
-    client: serenity::Client,
-}
-
-pub struct UninitializedBot {
     bot_token: String,
     framework: StandardFramework,
+    game_setups: Vec<(&'static str, SetupFn)>,
 }
 
 impl Bot {
-    pub fn new() -> Result<UninitializedBot, Error> {
+    pub fn new() -> Result<Bot, Error> {
         let prefix = env::var("BJORN_DISCORD_PREFIX")?;
         let bot_token = env::var("BJORN_DISCORD_TOKEN")?;
 
         let framework = StandardFramework::new().configure(|c| c.prefix(prefix));
 
-        Ok(UninitializedBot {
+        Ok(Bot {
             bot_token,
             framework,
+            game_setups: vec![],
         })
     }
 
-    pub async fn start(self, addr: &String) -> Result<(), Error> {
-        let mut data = self.client.data.write().await;
+    pub fn with_game<Game>(mut self) -> Self
+    where
+        Game: discord_config::DiscordGame + 'static,
+    {
+        self.framework.group_add(Game::command_group());
+        self.game_setups.push((Game::id(), Box::new(Game::setup)));
 
-        data.insert::<minecraft::DiscordConfig>(minecraft::DiscordConfig::new(load_config()));
-
-        let (minecraft_api_components, minecraft_handler_components) =
-            minecraft::DiscordConfig::new_ws_clients(&self.client);
-
-        data.insert::<WsClient<minecraft::DiscordConfig>>(Mutex::new(minecraft_api_components.0));
-
-        let players = minecraft::Players::load(format!(
-            "discord_games/{}/players.json",
-            minecraft::DiscordConfig::id(),
-        ));
-        data.insert::<minecraft::Players>(Arc::new(Mutex::new(players)));
-
-        let tp_locations = minecraft::TpLocations::load(format!(
-            "discord_games/{}/tp_locations.json",
-            minecraft::DiscordConfig::id(),
-        ));
-        data.insert::<minecraft::TpLocations>(Arc::new(Mutex::new(tp_locations)));
-
-        drop(data);
-
-        let cancellers = Arc::new(Mutex::new(Some(vec![
-            minecraft_api_components.2,
-            minecraft_handler_components.1,
-        ])));
-
-        let mut client = self
-            .client
-            .ctrlc_with(move |dc| {
-                let cancellers = cancellers.clone();
-                async move {
-                    println!("^C");
-
-                    if let Some(cancellers) = cancellers.lock().unwrap().take() {
-                        cancellers.into_iter().for_each(|c| c.cancel());
-                    }
-
-                    serenity_ctrlc::Disconnector::disconnect_some(dc).await;
-                }
-            })
-            .expect("Ctrl+C Setup failed");
-
-        let serenity_task = client.start();
-        let minecraft_ws_task = tokio::spawn(minecraft_api_components.1.run(addr.clone()));
-        let minecraft_handler_task = tokio::spawn(minecraft_handler_components.0.run(addr.clone()));
-
-        let (serenity_result, minecraft_ws_result, minecraft_handler_result) =
-            tokio::join!(serenity_task, minecraft_ws_task, minecraft_handler_task);
-        serenity_result.unwrap_or_default();
-        minecraft_ws_result.unwrap_or_default();
-        minecraft_handler_result.unwrap_or_default();
-
-        Ok(())
+        self
     }
-}
 
-fn load_config<T>() -> T
-where
-    T: GameConfig + serde::Serialize + for<'de> serde::Deserialize<'de>,
-{
-    serde_json::from_str(
-        std::fs::read_to_string(format!("discord_games/{}/config.json", T::id()))
-            .expect("Could not load config")
-            .as_str(),
-    )
-    .expect("Could not deserialize config")
-}
-
-type WsClient<T> = ws_protocol::WsClient<<T as GameConfig>::Api>;
-
-impl UninitializedBot {
-    pub async fn init(mut self) -> Result<Bot, Error> {
-        self.framework.group_add(&minecraft::MINECRAFT_GROUP);
-
+    pub async fn start(self, addr: String) -> Result<(), Error> {
         let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
 
         let client = Client::builder(self.bot_token, intents)
@@ -118,25 +55,46 @@ impl UninitializedBot {
             .framework(self.framework)
             .await?;
 
-        Ok(Bot { client })
+        let mut canceller = discord_config::Canceller(vec![]);
+
+        {
+            let mut data = client.data.write().await;
+
+            self.game_setups.into_iter().for_each(|(game, setup)| {
+                setup(
+                    discord_config::DiscordGameSetupData {
+                        config_path: String::from("discord_games"),
+                        data: client.data.clone(),
+                        cache_and_http: client.cache_and_http.clone(),
+                        addr: addr.clone(),
+                    },
+                    &mut data,
+                    &mut canceller,
+                )
+                .unwrap_or_else(|_| println!("Failed setup for {game}, skipping."));
+            });
+        }
+
+        let canceller = Arc::new(Mutex::new(Some(canceller)));
+        let mut client = client
+            .ctrlc_with(move |dc| {
+                let canceller = canceller.clone();
+                async move {
+                    println!("^C");
+
+                    if let Some(canceller) = canceller.lock().unwrap().take() {
+                        canceller.cancel();
+                    }
+
+                    serenity_ctrlc::Disconnector::disconnect_some(dc).await;
+                }
+            })
+            .expect("Ctrl+C Setup failed");
+
+        client.start().await?;
+
+        Ok(())
     }
-}
-
-type OnMessage = std::pin::Pin<
-    Box<
-        dyn Fn(
-                &serenity::prelude::Context,
-                &serenity::model::prelude::Message,
-            ) -> std::pin::Pin<Box<dyn futures_util::Future<Output = ()> + Send>>
-            + Send
-            + Sync,
-    >,
->;
-
-pub struct MessageDispatcher(OnMessage);
-
-impl serenity::prelude::TypeMapKey for MessageDispatcher {
-    type Value = Arc<Mutex<Vec<OnMessage>>>;
 }
 
 #[derive(Debug)]

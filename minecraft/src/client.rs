@@ -72,8 +72,7 @@ impl Message {
 
     pub fn indicates_follow_up(&self) -> bool {
         match self {
-            Message::StartupBegin |
-            Message::ShutdownBegin => true,
+            Message::StartupBegin | Message::ShutdownBegin => true,
             _ => false,
         }
     }
@@ -95,10 +94,13 @@ pub struct Handler {
 }
 
 impl Handler {
-    pub fn new(client: &serenity::Client) -> Handler {
+    pub fn new(
+        data: Arc<tokio::sync::RwLock<serenity::prelude::TypeMap>>,
+        cache_and_http: Arc<serenity::CacheAndHttp>,
+    ) -> Handler {
         Handler {
-            data: client.data.clone(),
-            cache_and_http: client.cache_and_http.clone(),
+            data,
+            cache_and_http,
         }
     }
 }

@@ -1,14 +1,16 @@
 use std::sync::{Arc, Mutex};
 
-use discord_config::{use_data, GameConfig};
+use discord_config::use_data;
 use serenity::{
-    async_trait, framework::standard::macros::group, model::prelude::Message, prelude::*, http::Typing,
+    async_trait, framework::standard::macros::group, http::Typing, model::prelude::Message,
+    prelude::*,
 };
+use ws_protocol::WsTask;
 
 use super::*;
 
 impl TypeMapKey for DiscordConfig {
-    type Value = std::sync::Mutex<Option<DiscordConfig>>;
+    type Value = Mutex<Option<DiscordConfig>>;
 }
 
 #[group]
@@ -43,20 +45,13 @@ impl discord_config::BjornMessageHandler for MessageHandler {
             let data = data.read().await;
             let players = data.get::<Players>().unwrap().lock().unwrap();
 
-            (
-                message.indicates_follow_up(),
-                message.to_string(&players),
-            )
+            (message.indicates_follow_up(), message.to_string(&players))
         };
 
         use_data!(data, |config: DiscordConfig| {
             let mut typing_results = vec![];
             for channel in &config.chat_channels {
-                let channel = http_and_cache
-                    .cache
-                    .channel(*channel)
-                    .unwrap()
-                    .id();
+                let channel = http_and_cache.cache.channel(*channel).unwrap().id();
 
                 channel
                     .send_message(http_and_cache.http.clone(), |msg| msg.content(&message))
@@ -72,11 +67,14 @@ impl discord_config::BjornMessageHandler for MessageHandler {
 
             let mut data = data.write().await;
             if has_follow_up {
-                data.insert::<TypingResults>(Arc::new(Mutex::new(Some(TypingResults(typing_results)))));
+                data.insert::<TypingResults>(Arc::new(Mutex::new(Some(TypingResults(
+                    typing_results,
+                )))));
             } else {
                 if let Some(typing_results) = data.remove::<TypingResults>() {
                     if let Some(typing_results) = typing_results.lock().unwrap().take() {
-                        typing_results.0
+                        typing_results
+                            .0
                             .into_iter()
                             .map(Typing::stop)
                             .for_each(Option::unwrap_or_default);
@@ -88,12 +86,7 @@ impl discord_config::BjornMessageHandler for MessageHandler {
 }
 
 #[async_trait]
-impl GameConfig for DiscordConfig {
-    type Config = DiscordConfig;
-    type MessageHandler = MessageHandler;
-    type Api = server::Api;
-    type ApiHandler = client::Handler;
-
+impl discord_config::DiscordGame for DiscordConfig {
     fn id() -> &'static str {
         "minecraft"
     }
@@ -102,20 +95,45 @@ impl GameConfig for DiscordConfig {
         &MINECRAFT_GROUP
     }
 
-    fn new(game_config: Self::Config) -> Self::Value {
-        std::sync::Mutex::new(Some(game_config))
-    }
+    fn setup(
+        setup_data: discord_config::DiscordGameSetupData,
+        serenity_data: &mut serenity::prelude::TypeMap,
+        canceller: &mut discord_config::Canceller,
+    ) -> Result<(), ()> {
+        let discord_config::DiscordGameSetupData {
+            config_path,
+            data,
+            cache_and_http,
+            addr,
+        } = setup_data;
 
-    fn new_ws_clients(
-        client: &serenity::Client,
-    ) -> (
-        ws_protocol::WsClientComponents<server::Api>,
-        ws_protocol::WsClientHandlerComponents<client::Api, client::Handler>,
-    ) {
-        (
-            ws_protocol::WsClient::<server::Api>::new(),
-            ws_protocol::WsClientHandler::new(client::Handler::new(client)),
-        )
+        let config = match discord_config::load_config(&config_path) {
+            Some(config) => config,
+            None => return Err(()),
+        };
+
+        serenity_data.insert::<DiscordConfig>(Mutex::new(Some(config)));
+
+        let (server_api, runner, out_canceller) = ws_protocol::WsClient::<server::Api>::new();
+        let (client_handler, in_canceller) =
+            ws_protocol::WsClientHandler::new(client::Handler::new(data, cache_and_http));
+
+        canceller.add(out_canceller);
+        canceller.add(in_canceller);
+
+        serenity_data.insert::<ws_protocol::WsClient<server::Api>>(Mutex::new(server_api));
+
+        let players = Players::load(format!("{}/{}/players.json", config_path, Self::id(),));
+        serenity_data.insert::<Players>(Arc::new(Mutex::new(players)));
+
+        let tp_locations =
+            TpLocations::load(format!("{}/{}/tp_locations.json", config_path, Self::id(),));
+        serenity_data.insert::<TpLocations>(Arc::new(Mutex::new(tp_locations)));
+
+        tokio::spawn(runner.run(addr.clone()));
+        tokio::spawn(client_handler.run(addr.clone()));
+
+        Ok(())
     }
 
     async fn has_necessary_permissions(

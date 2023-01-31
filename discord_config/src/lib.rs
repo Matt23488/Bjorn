@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serenity::async_trait;
 
-use ws_protocol::{ClientApi, ClientApiHandler, WsClientComponents, WsClientHandlerComponents};
+use ws_protocol::{ClientApi, ClientApiHandler};
 
 pub enum Role {
     User,
@@ -69,24 +69,46 @@ impl RoleConfig {
     }
 }
 
+pub struct Canceller(pub Vec<ws_protocol::Canceller>);
+
+impl Canceller {
+    pub fn cancel(self) {
+        self.0.into_iter().for_each(|c| c.cancel());
+    }
+
+    pub fn add(&mut self, canceller: ws_protocol::Canceller) {
+        self.0.push(canceller);
+    }
+}
+
+pub fn load_config<T>(base_path: &str) -> Option<T>
+where
+    T: DiscordGame + serde::Serialize + for<'de> serde::Deserialize<'de>,
+{
+    serde_json::from_str(
+        std::fs::read_to_string(format!("{}/{}/config.json", base_path, T::id()))
+            .ok()?
+            .as_str(),
+    )
+    .ok()
+}
+
+pub struct DiscordGameSetupData {
+    pub config_path: String,
+    pub data: Arc<tokio::sync::RwLock<serenity::prelude::TypeMap>>,
+    pub cache_and_http: Arc<serenity::CacheAndHttp>,
+    pub addr: String,
+}
+
 #[async_trait]
-pub trait GameConfig: serenity::prelude::TypeMapKey {
-    type Config: serde::Serialize + for<'de> serde::Deserialize<'de>;
-    type MessageHandler: BjornMessageHandler + Send + Sync;
-
-    type Api: ClientApi;
-    type ApiHandler: ClientApiHandler;
-
+pub trait DiscordGame {
     fn id() -> &'static str;
     fn command_group() -> &'static serenity::framework::standard::CommandGroup;
-    fn new_ws_clients(
-        client: &serenity::Client,
-    ) -> (
-        WsClientComponents<Self::Api>,
-        WsClientHandlerComponents<<Self::ApiHandler as ClientApiHandler>::Api, Self::ApiHandler>,
-    );
-
-    fn new(game_config: Self::Config) -> Self::Value;
+    fn setup(
+        setup_data: DiscordGameSetupData,
+        serenity_data: &mut serenity::prelude::TypeMap,
+        canceller: &mut Canceller,
+    ) -> Result<(), ()>;
     async fn has_necessary_permissions(
         &self,
         ctx: &serenity::prelude::Context,

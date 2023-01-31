@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 serde = { version = "1.0.152", features = ["derive"] }
+serde_json = { version = "1.0.91" }
 serenity = { version = "0.11.5", features = ["client", "model", "gateway", "rustls_backend"] }
 tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread"] }
 ws_protocol = { path = "../ws_protocol", features = ["serenity"] }

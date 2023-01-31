@@ -3,10 +3,11 @@ use serenity::{
     cache::FromStrAndCache,
     framework::standard::CommandResult,
     model::prelude::{Mention, Message, UserId},
-    prelude::*, utils::Color,
+    prelude::*,
+    utils::Color,
 };
 
-use discord_config::GameConfig;
+use discord_config::DiscordGame;
 
 use crate::{
     client,
@@ -161,10 +162,11 @@ async fn list_saved_locations(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                let e = e.title("Saved Locations")
-                    .color(Color::ROSEWATER);
+                let e = e.title("Saved Locations").color(Color::ROSEWATER);
 
-                locations.into_iter().fold(e, |e, loc| e.field(loc.name, format!("`{:?}`", loc.coords), true))
+                locations.into_iter().fold(e, |e, loc| {
+                    e.field(loc.name, format!("`{:?}`", loc.coords), true)
+                })
             })
         })
         .await?;

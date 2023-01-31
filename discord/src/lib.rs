@@ -7,11 +7,8 @@ pub async fn run() {
 
     Bot::new()
         .expect("Error creating new bot.")
-        // .with_config::<minecraft::DiscordConfig>() // TODO: I will figure out a way to make this work later.
-        .init()
-        .await
-        .expect("Bjorn bot setup failed.")
-        .start(&ws_server_addr)
+        .with_game::<minecraft::DiscordConfig>()
+        .start(ws_server_addr)
         .await
         .expect("Error starting serenity Discord client.");
 }
