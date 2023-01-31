@@ -86,6 +86,7 @@ pub struct Handler {
 
 impl Handler {
     pub fn new(client_api: ws_protocol::WsClient<client::Api>) -> Handler {
+        // TODO: Clean this up
         let server_dir = std::env::var("BJORN_MINECRAFT_SERVER")
             .expect("Minecraft server environment not properly configured.");
 
@@ -108,10 +109,21 @@ impl Handler {
         let death_regex =
             regex::Regex::new(r"\[Server thread/INFO\]: ([a-zA-Z0-9_]+) (.+)$").unwrap();
 
+        let command_regex = regex::Regex::new(r"<([a-zA-Z0-9_]+)>\s+!(\w+)\s+(.+)$").unwrap();
+
         {
             let client_api = client_api.clone();
             let players = players.clone();
             server_process.handle_stdout(move |line| {
+                if let Some([player, command, args]) = captures!(command_regex, line) {
+                    client_api.lock().unwrap().send(client::Message::Command(
+                        String::from(*player),
+                        String::from(*command),
+                        String::from(*args),
+                    ));
+                    return;
+                }
+
                 let chat_captures = chat_regex.captures(line).map(|captures| {
                     captures
                         .iter()

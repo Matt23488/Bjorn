@@ -19,19 +19,20 @@ pub enum Message {
     PlayerDied(String, String),
     PlayerAdvancement(String, String, String),
     Players(Vec<String>),
+    Command(String, String, String),
 }
 
 macro_rules! with_mention {
     ($players:expr, $player:expr) => {{
         $players
-            .get_user_id(&$player)
+            .get_user_id($player)
             .map(|id| Mention::User(UserId(id)).to_string())
-            .unwrap_or($player)
+            .unwrap_or($player.clone())
     }};
 }
 
 impl Message {
-    pub fn to_string(self, players: &Players) -> String {
+    pub fn to_string(&self, players: &Players) -> String {
         match self {
             Message::StartupBegin => "Minecraft Server starting...".into(),
             Message::StartupComplete => "Minecraft Server startup complete.".into(),
@@ -67,6 +68,12 @@ impl Message {
                     "There are currently no players on the server.".into()
                 }
             }
+            Message::Command(player, command, target) => format!(
+                "[In-Game] {}: !{} {}",
+                with_mention!(players, player),
+                command,
+                target
+            ),
         }
     }
 

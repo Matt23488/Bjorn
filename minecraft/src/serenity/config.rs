@@ -41,12 +41,44 @@ impl discord_config::BjornMessageHandler for MessageHandler {
         http_and_cache: Arc<serenity::CacheAndHttp>,
         message: client::Message,
     ) {
-        let (has_follow_up, message) = {
+        let (has_follow_up, message_text) = {
             let data = data.read().await;
             let players = data.get::<Players>().unwrap().lock().unwrap();
 
             (message.indicates_follow_up(), message.to_string(&players))
         };
+
+        if let client::Message::Command(player, command, target) = message {
+            let message = match command.as_str() {
+                "tp" => {
+                    if &target[0..1] == "$" {
+                        let coords = {
+                            let data = data.read().await;
+                            let tp_locations = data.get::<TpLocations>().unwrap().lock().unwrap();
+                            tp_locations.get_coords(&target[1..])
+                        };
+
+                        match coords {
+                            Some(coords) => Some(server::Message::TpLoc(player, coords)),
+                            None => None,
+                        }
+                    } else {
+                        Some(server::Message::Tp(player, target))
+                    }
+                }
+                _ => None,
+            };
+
+            if let Some(message) = message {
+                let data = data.read().await;
+                let server_api = data
+                    .get::<ws_protocol::WsClient<server::Api>>()
+                    .unwrap()
+                    .lock()
+                    .unwrap();
+                server_api.send(message);
+            }
+        }
 
         use_data!(data, |config: DiscordConfig| {
             let mut typing_results = vec![];
@@ -54,7 +86,9 @@ impl discord_config::BjornMessageHandler for MessageHandler {
                 let channel = http_and_cache.cache.channel(*channel).unwrap().id();
 
                 channel
-                    .send_message(http_and_cache.http.clone(), |msg| msg.content(&message))
+                    .send_message(http_and_cache.http.clone(), |msg| {
+                        msg.content(&message_text)
+                    })
                     .await
                     .unwrap();
 
