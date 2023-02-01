@@ -6,6 +6,7 @@ members = [
     "discord_config",
     "game_manager",
     "minecraft",
+    "valheim",
     "web",
     "ws_protocol",
     "ws_server",

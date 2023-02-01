@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 ctrlc = "3.2.4"
 minecraft = { path = "../minecraft" }
+valheim = { path = "../valheim" }
 tokio = { version = "1.24.1", features = ["macros", "rt-multi-thread", "sync"] }
 ws_protocol = { path = "../ws_protocol", features = ["client"] }

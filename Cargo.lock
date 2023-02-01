@@ -307,6 +307,7 @@ dependencies = [
  "serenity",
  "serenity_ctrlc",
  "tokio",
+ "valheim",
  "ws_protocol",
 ]
 
@@ -454,6 +455,7 @@ dependencies = [
  "ctrlc",
  "minecraft",
  "tokio",
+ "valheim",
  "ws_protocol",
 ]
 
@@ -1873,6 +1875,21 @@ name = "uwl"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f4bf03e0ca70d626ecc4ba6b0763b934b6f2976e8c744088bb3c1d646fbb1ad0"
+
+[[package]]
+name = "valheim"
+version = "0.1.0"
+dependencies = [
+ "bjorn_macro",
+ "discord_config",
+ "once_cell",
+ "regex",
+ "serde",
+ "serde_json",
+ "serenity",
+ "tokio",
+ "ws_protocol",
+]
 
 [[package]]
 name = "version_check"

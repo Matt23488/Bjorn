@@ -122,9 +122,9 @@ pub trait BjornMessageHandler {
     type Handler: ClientApiHandler;
 
     async fn client_message(
-        ctx: &serenity::prelude::Context,
-        msg: &serenity::model::prelude::Message,
-    );
+        _ctx: &serenity::prelude::Context,
+        _msg: &serenity::model::prelude::Message,
+    ) {}
     async fn server_message(
         data: Arc<tokio::sync::RwLock<serenity::prelude::TypeMap>>,
         cache_and_http: Arc<serenity::CacheAndHttp>,

@@ -8,6 +8,7 @@ pub async fn run() {
     Bot::new()
         .expect("Error creating new bot.")
         .with_game::<minecraft::DiscordConfig>()
+        .with_game::<valheim::DiscordConfig>()
         .start(ws_server_addr)
         .await
         .expect("Error starting serenity Discord client.");
