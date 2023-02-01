@@ -20,6 +20,7 @@ pub enum Message {
     PlayerAdvancement(String, String, String),
     Players(Vec<String>),
     Command(String, String, String),
+    NamedEntityDied(String, String),
 }
 
 macro_rules! with_mention {
@@ -74,6 +75,7 @@ impl Message {
                 command,
                 target
             ),
+            Message::NamedEntityDied(entity, message) => format!("It is with great sadness I bring news that our beloved `{entity}` {message}."),
         }
     }
 
