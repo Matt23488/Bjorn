@@ -26,10 +26,15 @@ impl ws_protocol::ClientApi for Api {
     }
 }
 
+pub struct ConnectedPlayer {
+    id: String,
+    name: String,
+}
+
 pub struct Handler {
     client_api: Arc<Mutex<ws_protocol::WsClient<client::Api>>>,
     server_process: ValheimServerProcess,
-    _players: Arc<Mutex<Vec<String>>>,
+    _players: Arc<Mutex<Vec<ConnectedPlayer>>>,
 }
 
 impl Handler {
