@@ -37,7 +37,7 @@ impl discord_config::BjornMessageHandler for MessageHandler {
 
         use_data!(data, |config: DiscordConfig| {
             let mut typing_results = vec![];
-            for channel in &config.chat_channels {
+            for channel in &config.listen_channels {
                 let channel = http_and_cache.cache.channel(*channel).unwrap().id();
 
                 channel
@@ -144,13 +144,6 @@ impl discord_config::DiscordGame for DiscordConfig {
 pub struct DiscordConfig {
     roles: discord_config::RoleConfig,
     listen_channels: Vec<u64>,
-    chat_channels: Vec<u64>,
-}
-
-impl DiscordConfig {
-    pub fn is_chat_channel(&self, channel_id: serenity::model::prelude::ChannelId) -> bool {
-        self.chat_channels.contains(&channel_id.0)
-    }
 }
 
 struct TypingResults(Vec<Typing>);
