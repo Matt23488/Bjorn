@@ -6,7 +6,10 @@ use crate::client;
 
 use super::ConnectedPlayer;
 
-pub fn parse_line(line: &str, players: &Arc<Mutex<Vec<ConnectedPlayer>>>) -> Option<client::Message> {
+pub fn parse_line(
+    line: &str,
+    players: &Arc<Mutex<Vec<ConnectedPlayer>>>,
+) -> Option<client::Message> {
     PARSERS.iter().find_map(|parser| parser(line, players))
 }
 
@@ -74,7 +77,8 @@ macro_rules! parser {
     }};
 }
 
-type Parser = dyn Fn(&str, &Arc<Mutex<Vec<ConnectedPlayer>>>) -> Option<client::Message> + Send + Sync;
+type Parser =
+    dyn Fn(&str, &Arc<Mutex<Vec<ConnectedPlayer>>>) -> Option<client::Message> + Send + Sync;
 
 /// The closures in this vector are evaluated in order, so the first
 /// successful match will be returned. Keep this in mind when

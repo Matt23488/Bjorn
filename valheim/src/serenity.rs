@@ -1,16 +1,9 @@
 use bjorn_macro::bjorn_command;
-use serenity::{
-    framework::standard::CommandResult,
-    model::prelude::*,
-    prelude::*,
-};
+use serenity::{framework::standard::CommandResult, model::prelude::*, prelude::*};
 
 use discord_config::DiscordGame;
 
-use crate::{
-    client,
-    server,
-};
+use crate::{client, server};
 
 mod config;
 pub use self::config::*;
@@ -47,6 +40,11 @@ pub async fn vplayer(ctx: &Context, msg: &Message) -> CommandResult {
         [] => echo_player_name(ctx, msg).await,
         [name, ..] => register_player_name(ctx, msg, *name).await,
     }
+}
+
+#[bjorn_command(DiscordConfig)]
+pub async fn haldor(ctx: &Context, _msg: &Message) -> CommandResult {
+    dispatch(ctx, server::Message::QueryHaldor).await
 }
 
 async fn echo_player_name(ctx: &Context, msg: &Message) -> CommandResult {

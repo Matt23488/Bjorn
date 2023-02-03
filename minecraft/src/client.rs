@@ -75,7 +75,9 @@ impl Message {
                 command,
                 target
             ),
-            Message::NamedEntityDied(entity, message) => format!("It is with great sadness I bring news that our beloved `{entity}` {message}."),
+            Message::NamedEntityDied(entity, message) => format!(
+                "It is with great sadness I bring news that our beloved `{entity}` {message}."
+            ),
         }
     }
 

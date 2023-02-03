@@ -14,7 +14,7 @@ impl TypeMapKey for DiscordConfig {
 }
 
 #[group]
-#[commands(vstart, vstop, vplayer)] // TODO: Macro to add commands in?
+#[commands(vstart, vstop, vplayer, haldor)] // TODO: Macro to add commands in?
 struct Valheim;
 
 pub struct MessageHandler;

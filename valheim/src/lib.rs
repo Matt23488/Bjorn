@@ -1,4 +1,4 @@
 pub mod client;
-pub mod server;
 mod serenity;
+pub mod server;
 pub use crate::serenity::*;

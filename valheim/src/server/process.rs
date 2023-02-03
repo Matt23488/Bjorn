@@ -14,11 +14,26 @@ pub struct ValheimServerProcess {
 impl ValheimServerProcess {
     pub fn build(dir: &str, name: &str, world: &str, password: &str, app_id: &str) -> Self {
         println!("{dir} {name} {world} {password} {app_id}");
-        let mut start_command = process::Command::new(std::path::Path::new(dir).join("valheim_server.exe"));
+        let mut start_command =
+            process::Command::new(std::path::Path::new(dir).join("valheim_server.exe"));
 
         start_command
             .current_dir(dir)
-            .args(["-nographics", "-batchmode", "-name", name, "-port", "2456", "-world", world, "-password", password, "-crossplay", "-public", "0"])
+            .args([
+                "-nographics",
+                "-batchmode",
+                "-name",
+                name,
+                "-port",
+                "2456",
+                "-world",
+                world,
+                "-password",
+                password,
+                "-crossplay",
+                "-public",
+                "0",
+            ])
             .env("SteamAppId", app_id)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped());
@@ -68,11 +83,18 @@ impl ValheimServerProcess {
             return Err(ValheimServerProcessError::NotRunning);
         }
 
-        process::Command::new("taskkill").args(["/IM", "valheim_server.exe"]).spawn().map_err(|e| ValheimServerProcessError::CouldNotStop(e.to_string()))?;
+        process::Command::new("taskkill")
+            .args(["/IM", "valheim_server.exe"])
+            .spawn()
+            .map_err(|e| ValheimServerProcessError::CouldNotStop(e.to_string()))?;
 
         drop(self.stdin.take());
 
-        self.valheim.take().unwrap().wait().map_err(|e| ValheimServerProcessError::CouldNotStop(e.to_string()))?;
+        self.valheim
+            .take()
+            .unwrap()
+            .wait()
+            .map_err(|e| ValheimServerProcessError::CouldNotStop(e.to_string()))?;
 
         Ok(())
     }

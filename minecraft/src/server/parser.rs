@@ -139,9 +139,9 @@ static PARSERS: Lazy<Vec<Box<Parser>>> = Lazy::new(|| {
         },
         parser! {
             (r"\[Server thread/INFO\]: Named entity .+ died: (\S+) (.+)$") = [entity, message] => client::Message::NamedEntityDied(
-                String::from(*entity), 
+                String::from(*entity),
                 String::from(*message),
             )
-        }
+        },
     ]
 });

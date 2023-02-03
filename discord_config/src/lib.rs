@@ -124,7 +124,8 @@ pub trait BjornMessageHandler {
     async fn client_message(
         _ctx: &serenity::prelude::Context,
         _msg: &serenity::model::prelude::Message,
-    ) {}
+    ) {
+    }
     async fn server_message(
         data: Arc<tokio::sync::RwLock<serenity::prelude::TypeMap>>,
         cache_and_http: Arc<serenity::CacheAndHttp>,
@@ -134,7 +135,7 @@ pub trait BjornMessageHandler {
 
 #[macro_export]
 macro_rules! use_data {
-    ($data:expr, |$item:ident: $key:ty| $body:block) => {{
+    ($data:expr, |$item:ident: $key:ty| $body:expr) => {{
         let $item = loop {
             let data = $data.read().await;
             let opt = data.get::<$key>().unwrap().lock().unwrap().take();
