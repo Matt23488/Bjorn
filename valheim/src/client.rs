@@ -1,10 +1,9 @@
 use discord_config::BjornMessageHandler;
-use serenity::model::prelude::*;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{MessageHandler, Players};
+use crate::MessageHandler;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
@@ -19,48 +18,7 @@ pub enum Message {
     Haldor(Vec<(f32, f32)>),
 }
 
-macro_rules! with_mention {
-    ($players:expr, $player:expr) => {{
-        $players
-            .get_user_id($player)
-            .map(|id| Mention::User(UserId(id)).to_string())
-            .unwrap_or($player.clone())
-    }};
-}
-
 impl Message {
-    pub fn to_string(&self, players: &Players) -> String {
-        match self {
-            Message::StartupBegin => "Valheim Server starting...".into(),
-            Message::StartupComplete(code) => {
-                format!("Valheim Server startup complete. Join Code is `{code}`.")
-            }
-            Message::ShutdownBegin => "Valheim Server shutting down...".into(),
-            Message::ShutdownComplete => "Valheim Server shutdown complete.".into(),
-            Message::Info(message) => format!("[Info] {message}"),
-            Message::PlayerJoined(player) => {
-                format!("{} joined the server!", with_mention!(players, player))
-            }
-            Message::PlayerQuit(player) => {
-                format!("{} left the server.", with_mention!(players, player))
-            }
-            Message::PlayerDied(player) => {
-                format!("{} died.", with_mention!(players, player))
-            }
-            Message::Haldor(locations) => {
-                if locations.is_empty() {
-                    String::from("No locations returned. Probably a bug.")
-                } else {
-                    locations
-                        .iter()
-                        .map(|(x, y)| format!("`({x}, {y})`"))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                }
-            }
-        }
-    }
-
     pub fn indicates_follow_up(&self) -> bool {
         match self {
             Message::StartupBegin | Message::ShutdownBegin => true,

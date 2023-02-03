@@ -6,8 +6,8 @@ const HALDOR_KEY: &[u8] = &[
 ];
 
 macro_rules! f32 {
-    ($bytes:expr, $idx:expr, $offset:expr) => {{
-        let offset = $idx + HALDOR_KEY.len() + $offset;
+    ($bytes:expr, $offset:expr) => {{
+        let offset = ($offset) + HALDOR_KEY.len();
         match ($bytes[offset..offset + 4]).try_into() {
             Ok(bytes) => f32::from_le_bytes(bytes),
             Err(_) => f32::INFINITY,
@@ -31,8 +31,8 @@ pub fn get_haldor_locations(world_path: &str) -> Vec<(f32, f32)> {
                     Some(idx) => {
                         let idx = idx + start;
 
-                        let x = f32!(&bytes, idx, 0);
-                        let z = f32!(&bytes, idx, 8);
+                        let x = f32!(&bytes, idx);
+                        let z = f32!(&bytes, idx + 8);
 
                         locations.push((x, z));
                         start = idx + HALDOR_KEY.len() + 12;

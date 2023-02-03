@@ -28,26 +28,20 @@ impl discord_config::BjornMessageHandler for MessageHandler {
         http_and_cache: Arc<serenity::CacheAndHttp>,
         message: client::Message,
     ) {
-        let (has_follow_up, message_text) = {
+        let players = {
             let data = data.read().await;
             let players = data.get::<Players>().unwrap().lock().unwrap();
 
-            (message.indicates_follow_up(), message.to_string(&players))
+            players.clone()
         };
 
         use_data!(data, |config: DiscordConfig| {
             let mut typing_results = vec![];
             for channel in &config.listen_channels {
                 let channel = http_and_cache.cache.channel(*channel).unwrap().id();
+                message.send_discord_message(&players, &http_and_cache.http, &channel).await.unwrap();
 
-                channel
-                    .send_message(http_and_cache.http.clone(), |msg| {
-                        msg.content(&message_text)
-                    })
-                    .await
-                    .unwrap();
-
-                if has_follow_up {
+                if message.indicates_follow_up() {
                     if let Ok(typing) = channel.start_typing(&http_and_cache.http) {
                         typing_results.push(typing);
                     }
@@ -55,7 +49,7 @@ impl discord_config::BjornMessageHandler for MessageHandler {
             }
 
             let mut data = data.write().await;
-            if has_follow_up {
+            if message.indicates_follow_up() {
                 data.insert::<TypingResults>(Arc::new(Mutex::new(Some(TypingResults(
                     typing_results,
                 )))));

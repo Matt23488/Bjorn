@@ -4,12 +4,13 @@ use serde::{Deserialize, Serialize};
 
 use super::json::Json;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
     user_id: u64,
     name: String,
 }
 
+#[derive(Clone)]
 pub struct Players {
     path: String,
     players: Vec<Player>,
