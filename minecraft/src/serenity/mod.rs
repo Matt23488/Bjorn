@@ -37,12 +37,12 @@ macro_rules! command_args {
 }
 
 #[bjorn_command(DiscordConfig)]
-pub async fn start(ctx: &Context, _: &Message) -> CommandResult {
+pub async fn mstart(ctx: &Context, _: &Message) -> CommandResult {
     dispatch(ctx, server::Message::Start).await
 }
 
 #[bjorn_command(DiscordConfig, admin)]
-pub async fn stop(ctx: &Context, _: &Message) -> CommandResult {
+pub async fn mstop(ctx: &Context, _: &Message) -> CommandResult {
     dispatch(ctx, server::Message::Stop).await
 }
 
@@ -69,7 +69,7 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
         None => {
             msg.reply(
                 ctx,
-                "You must register your Minecraft username with `!player <username>` first.",
+                "You must register your Minecraft username with `!mplayer <username>` first.",
             )
             .await?;
             return Ok(());
@@ -86,7 +86,7 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[bjorn_command(DiscordConfig)]
-pub async fn player(ctx: &Context, msg: &Message) -> CommandResult {
+pub async fn mplayer(ctx: &Context, msg: &Message) -> CommandResult {
     match command_args!(msg.content) {
         [] => echo_player_name(ctx, msg).await,
         [name, ..] => register_player_name(ctx, msg, *name).await,
@@ -109,7 +109,7 @@ async fn teleport(ctx: &Context, msg: &Message, player: String, target: &str) ->
             match target {
                 Some(target) => target,
                 None => {
-                    msg.reply(ctx, format!("{mention} does not have their Minecraft username registered. It would be cool if they would use `!player <username>` to fix that.")).await?;
+                    msg.reply(ctx, format!("{mention} does not have their Minecraft username registered. It would be cool if they would use `!mplayer <username>` to fix that.")).await?;
                     return Ok(());
                 }
             }
@@ -181,7 +181,7 @@ async fn send_tp_help_text(ctx: &Context, msg: &Message) -> CommandResult {
                 .color(Color::BLITZ_BLUE)
                 .description("To teleport to a player, the command must match this format:")
                 .field("format", "`!tp <player>`", false)
-                .field("player", "Either the in-game player name you wish to teleport to (case-sensitive), or if they have registered themselves with the `!player` command, their discord mention.", true)
+                .field("player", "Either the in-game player name you wish to teleport to (case-sensitive), or if they have registered themselves with the `!mplayer` command, their discord mention.", true)
         })
         .add_embed(|e| {
             e.title("Teleporting to a saved location")

@@ -14,7 +14,7 @@ impl TypeMapKey for DiscordConfig {
 }
 
 #[group]
-#[commands(start, stop, save, tp, players, player)] // TODO: Macro to add commands in?
+#[commands(mstart, mstop, save, tp, players, mplayer)] // TODO: Macro to add commands in?
 struct Minecraft;
 
 pub struct MessageHandler;
