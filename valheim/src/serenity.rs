@@ -156,6 +156,7 @@ impl client::Message {
                     }).await
                 }
             }
+            Self::MobAttack(event_id) => channel.say(http, format!("We're under attack! No fancy embeds yet, but the id is `{event_id}`.")).await,
         }
     }
 }

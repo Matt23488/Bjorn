@@ -16,6 +16,7 @@ pub enum Message {
     PlayerQuit(String),
     PlayerDied(String),
     Haldor(Vec<(f32, f32)>),
+    MobAttack(String),
 }
 
 impl Message {
