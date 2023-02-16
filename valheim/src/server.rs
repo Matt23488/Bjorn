@@ -15,7 +15,7 @@ use crate::client;
 
 #[derive(Serialize, Deserialize)]
 pub enum Message {
-    Start,
+    Start(bool),
     Stop,
     QueryHaldor,
 }
@@ -92,9 +92,9 @@ impl ws_protocol::ClientApiHandler for Handler {
     fn handle_message(&mut self, message: <Self::Api as ws_protocol::ClientApi>::Message) {
         let client_api = self.client_api.lock().unwrap();
         match message {
-            Message::Start => self
+            Message::Start(crossplay) => self
                 .server_process
-                .start()
+                .start(crossplay)
                 .map(|_| client_api.send(client::Message::StartupBegin)),
             Message::Stop => match self.server_process.is_running() {
                 true => {

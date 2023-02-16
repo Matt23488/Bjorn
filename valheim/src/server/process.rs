@@ -1,62 +1,72 @@
 use std::{
     io::BufRead,
-    process::{self, Child, ChildStdin, Command, Stdio},
+    process::{self, Child, Command, Stdio},
     sync::Arc,
 };
 
 pub struct ValheimServerProcess {
-    start_command: Command,
+    server_dir: String,
+    name: String,
+    world: String,
+    password: String,
+    app_id: String,
     valheim: Option<Child>,
-    stdin: Option<ChildStdin>, // TODO: Probably don't need to pipe stdin since Valheim doesn't use it
     stdout_handler: Option<Arc<dyn Fn(&str) + Send + Sync>>,
 }
 
 impl ValheimServerProcess {
     pub fn build(dir: &str, name: &str, world: &str, password: &str, app_id: &str) -> Self {
-        let mut start_command =
-            process::Command::new(std::path::Path::new(dir).join("valheim_server.exe"));
-
-        start_command
-            .current_dir(dir)
-            .args([
-                "-nographics",
-                "-batchmode",
-                "-name",
-                name,
-                "-port",
-                "2456",
-                "-world",
-                world,
-                "-password",
-                password,
-                // "-crossplay", // TODO: Probably make this configurable
-                "-public",
-                "0",
-            ])
-            .env("SteamAppId", app_id)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped());
-
         ValheimServerProcess {
-            start_command,
+            server_dir: String::from(dir),
+            name: String::from(name),
+            world: String::from(world),
+            password: String::from(password),
+            app_id: String::from(app_id),
             valheim: None,
-            stdin: None,
             stdout_handler: None,
         }
     }
 
-    pub fn start(&mut self) -> Result<(), ValheimServerProcessError> {
+    fn start_command(&self, crossplay: bool) -> Command {
+        let mut start_command =
+            process::Command::new(std::path::Path::new(&self.server_dir).join("valheim_server.exe"));
+
+            start_command
+                .current_dir(&self.server_dir)
+                .args([
+                    "-nographics",
+                    "-batchmode",
+                    "-name",
+                    &self.name,
+                    "-port",
+                    "2456",
+                    "-world",
+                    &self.world,
+                    "-password",
+                    &self.password,
+                    "-public",
+                    "0",
+                ])
+                .env("SteamAppId", &self.app_id)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped());
+
+        if crossplay {
+            start_command.arg("-crossplay");
+        }
+
+        start_command
+    }
+
+    pub fn start(&mut self, crossplay: bool) -> Result<(), ValheimServerProcessError> {
         if let Some(_) = self.valheim {
             return Err(ValheimServerProcessError::AlreadyStarted);
         }
 
-        let mut child = match self.start_command.spawn() {
+        let mut child = match self.start_command(crossplay).spawn() {
             Ok(child) => child,
             Err(e) => return Err(ValheimServerProcessError::CouldNotStart(e.to_string())),
         };
-
-        self.stdin
-            .replace(child.stdin.take().expect("stdin to be piped"));
 
         if let Some(handler) = self.stdout_handler.as_ref() {
             let handler = handler.clone();
@@ -86,8 +96,6 @@ impl ValheimServerProcess {
             .args(["/IM", "valheim_server.exe"])
             .spawn()
             .map_err(|e| ValheimServerProcessError::CouldNotStop(e.to_string()))?;
-
-        drop(self.stdin.take());
 
         self.valheim
             .take()

@@ -27,8 +27,13 @@ macro_rules! command_args {
 }
 
 #[bjorn_command(DiscordConfig)]
-pub async fn vstart(ctx: &Context, _: &Message) -> CommandResult {
-    dispatch(ctx, server::Message::Start).await
+pub async fn vstart(ctx: &Context, msg: &Message) -> CommandResult {
+    let msg = match command_args!(msg.content) {
+        ["crossplay"] => server::Message::Start(true),
+        [..] => server::Message::Start(false),
+    };
+
+    dispatch(ctx, msg).await
 }
 
 #[bjorn_command(DiscordConfig, admin)]
@@ -108,7 +113,8 @@ impl client::Message {
     pub async fn send_discord_message<'m>(&self, players: &Players, http: &Arc<serenity::http::Http>, channel: &ChannelId) -> Result<Message, SerenityError> {
         match self {
             Self::StartupBegin => channel.say(http, "Valheim Server starting...").await,
-            Self::StartupComplete(code) => {
+            Self::StartupComplete(None) => channel.say(http, "Valheim Server startup complete.").await,
+            Self::StartupComplete(Some(code)) => {
                 channel.say(http, format!("Valheim Server startup complete. Join Code is `{code}`.")).await
             }
             Self::ShutdownBegin => channel.say(http, "Valheim Server shutting down...").await,

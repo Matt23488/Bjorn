@@ -8,7 +8,7 @@ use crate::MessageHandler;
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
     StartupBegin,
-    StartupComplete(String),
+    StartupComplete(Option<String>),
     ShutdownBegin,
     ShutdownComplete,
     Info(String),
