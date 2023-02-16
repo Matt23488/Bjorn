@@ -13,7 +13,6 @@ pub struct ValheimServerProcess {
 
 impl ValheimServerProcess {
     pub fn build(dir: &str, name: &str, world: &str, password: &str, app_id: &str) -> Self {
-        println!("{dir} {name} {world} {password} {app_id}");
         let mut start_command =
             process::Command::new(std::path::Path::new(dir).join("valheim_server.exe"));
 
@@ -30,7 +29,7 @@ impl ValheimServerProcess {
                 world,
                 "-password",
                 password,
-                "-crossplay",
+                // "-crossplay", // TODO: Probably make this configurable
                 "-public",
                 "0",
             ])
