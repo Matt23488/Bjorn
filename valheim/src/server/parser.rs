@@ -132,7 +132,7 @@ static PARSERS: Lazy<Vec<Box<Parser>>> = Lazy::new(|| {
             }
         },
         parser! {
-            (r"Random event set: (.+)$") = [event_id] => Some(client::Message::MobAttack(String::from(*event_id)))
+            (r"Random event set:(.+)$") = [event_id] => Some(client::Message::MobAttack(String::from(*event_id)))
         }
     ]
 });
