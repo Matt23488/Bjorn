@@ -67,9 +67,29 @@ impl Handler {
         {
             let client_api = client_api.clone();
             let players = players.clone();
+            let running = Arc::new(Mutex::new(false));
 
-            server_process.handle_stdout(move |line| {
-                if let Some(message) = parse_line(line, &players) {
+            {
+                let running = running.clone();
+                server_process.on_stopped(move || {
+                    *running.lock().unwrap() = false;
+                })
+            }
+
+            server_process.handle_stdout(move |line, crossplay| {
+                let state = ServerState {
+                    players: players.clone(),
+                    running: running.clone(),
+                    crossplay,
+                };
+
+                if let Some(message) = parse_line(line, state) {
+                    if let (true, client::Message::StartupComplete(Some(_)))
+                    | (false, client::Message::StartupComplete(None)) = (crossplay, &message)
+                    {
+                        *running.lock().unwrap() = true;
+                    }
+
                     client_api.lock().unwrap().send(message);
                 }
 
@@ -97,11 +117,10 @@ impl ws_protocol::ClientApiHandler for Handler {
                 .start(crossplay)
                 .map(|_| client_api.send(client::Message::StartupBegin)),
             Message::Stop => match self.server_process.is_running() {
-                true => {
-                    self.server_process
-                        .stop()
-                        .map(|_| client_api.send(client::Message::ShutdownComplete))
-                }
+                true => self
+                    .server_process
+                    .stop()
+                    .map(|_| client_api.send(client::Message::ShutdownComplete)),
                 false => Ok(client_api.send(client::Message::Info(String::from(
                     "Server is already stopped.",
                 )))),

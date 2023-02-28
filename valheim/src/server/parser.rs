@@ -6,11 +6,14 @@ use crate::client;
 
 use super::ConnectedPlayer;
 
-pub fn parse_line(
-    line: &str,
-    players: &Arc<Mutex<Vec<ConnectedPlayer>>>,
-) -> Option<client::Message> {
-    PARSERS.iter().find_map(|parser| parser(line, players))
+pub fn parse_line(line: &str, state: ServerState) -> Option<client::Message> {
+    PARSERS.iter().find_map(|parser| parser(line, &state))
+}
+
+pub struct ServerState {
+    pub players: Arc<Mutex<Vec<ConnectedPlayer>>>,
+    pub running: Arc<Mutex<bool>>,
+    pub crossplay: bool,
 }
 
 macro_rules! captures {
@@ -52,17 +55,17 @@ macro_rules! regex {
 // but it works.
 macro_rules! parser {
     {
-        ($regex:expr $(, $players:ident)? $(,)?)
+        ($regex:expr $(, $state:pat_param)? $(,)?)
 
         = $pattern:pat_param
         $(if $condition:expr)?
 
         => $message:expr
     } => {{
-        Box::new(|line, _players| {
+        Box::new(|line, _state| {
             regex!(REGEX, $regex);
 
-            $(let $players = _players;)?
+            $(let $state = _state;)?
 
             if let Some($pattern) = captures!(REGEX, line) {
                 if $(($condition) &&)? true {
@@ -77,8 +80,7 @@ macro_rules! parser {
     }};
 }
 
-type Parser =
-    dyn Fn(&str, &Arc<Mutex<Vec<ConnectedPlayer>>>) -> Option<client::Message> + Send + Sync;
+type Parser = dyn Fn(&str, &ServerState) -> Option<client::Message> + Send + Sync;
 
 /// The closures in this vector are evaluated in order, so the first
 /// successful match will be returned. Keep this in mind when
@@ -86,7 +88,7 @@ type Parser =
 static PARSERS: Lazy<Vec<Box<Parser>>> = Lazy::new(|| {
     vec![
         parser! {
-            (r": Got character ZDOID from ([\w\d_]+) : (.{2,}):\d+$", players) = [player, id] => {
+            (r": Got character ZDOID from ([\w\d_]+) : (.{2,}):\d+$", ServerState { players, .. }) = [player, id] => {
                 let mut players = players.lock().unwrap();
 
                 match players.iter().position(|p| p.id == *id) {
@@ -106,7 +108,7 @@ static PARSERS: Lazy<Vec<Box<Parser>>> = Lazy::new(|| {
             }
         },
         parser! {
-            (r": Destroying abandoned non persistent zdo \S+ owner (.+)$", players) = [id] => {
+            (r": Destroying abandoned non persistent zdo \S+ owner (.+)$", ServerState { players, .. }) = [id] => {
                 let mut players = players.lock().unwrap();
                 let player_index = match players.iter().position(|p| p.id == *id) {
                     Some(idx) => idx,
@@ -120,19 +122,23 @@ static PARSERS: Lazy<Vec<Box<Parser>>> = Lazy::new(|| {
             }
         },
         parser! {
-            (r#"Session "\w+" with join code (\d{6}) and IP \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:2456 is active with \d+ player\(s\)$"#, players) = [code] => {
+            (r#"Session "\w+" with join code (\d{6}) and IP \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:2456 is active with \d+ player\(s\)$"#, ServerState { players, .. }) = [code] => {
                 players.lock().unwrap().clear();
                 Some(client::Message::StartupComplete(Some(String::from(*code))))
             }
         },
         parser! {
-            (r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}: Game server connected$", players) = [] => {
+            (r"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}: Game server connected$", ServerState { players, running, crossplay }) = [] => {
+                if *running.lock().unwrap() || *crossplay {
+                    return None;
+                }
+
                 players.lock().unwrap().clear();
                 Some(client::Message::StartupComplete(None))
             }
         },
         parser! {
             (r"Random event set:(.+)$") = [event_id] => Some(client::Message::MobAttack(String::from(*event_id)))
-        }
+        },
     ]
 });

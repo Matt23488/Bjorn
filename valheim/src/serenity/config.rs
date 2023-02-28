@@ -39,7 +39,10 @@ impl discord_config::BjornMessageHandler for MessageHandler {
             let mut typing_results = vec![];
             for channel in &config.listen_channels {
                 let channel = http_and_cache.cache.channel(*channel).unwrap().id();
-                message.send_discord_message(&players, &http_and_cache.http, &channel).await.unwrap();
+                message
+                    .send_discord_message(&players, &http_and_cache.http, &channel)
+                    .await
+                    .unwrap();
 
                 if message.indicates_follow_up() {
                     if let Ok(typing) = channel.start_typing(&http_and_cache.http) {

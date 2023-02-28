@@ -110,28 +110,54 @@ macro_rules! with_mention {
 }
 
 impl client::Message {
-    pub async fn send_discord_message<'m>(&self, players: &Players, http: &Arc<serenity::http::Http>, channel: &ChannelId) -> Result<Message, SerenityError> {
+    pub async fn send_discord_message<'m>(
+        &self,
+        players: &Players,
+        http: &Arc<serenity::http::Http>,
+        channel: &ChannelId,
+    ) -> Result<Message, SerenityError> {
         match self {
             Self::StartupBegin => channel.say(http, "Valheim Server starting...").await,
-            Self::StartupComplete(None) => channel.say(http, "Valheim Server startup complete.").await,
+            Self::StartupComplete(None) => {
+                channel.say(http, "Valheim Server startup complete.").await
+            }
             Self::StartupComplete(Some(code)) => {
-                channel.say(http, format!("Valheim Server startup complete. Join Code is `{code}`.")).await
+                channel
+                    .say(
+                        http,
+                        format!("Valheim Server startup complete. Join Code is `{code}`."),
+                    )
+                    .await
             }
             Self::ShutdownBegin => channel.say(http, "Valheim Server shutting down...").await,
             Self::ShutdownComplete => channel.say(http, "Valheim Server shutdown complete.").await,
             Self::Info(message) => channel.say(http, format!("[Info] {message}")).await,
             Self::PlayerJoined(player) => {
-                channel.say(http, format!("{} joined the server!", with_mention!(players, player))).await
+                channel
+                    .say(
+                        http,
+                        format!("{} joined the server!", with_mention!(players, player)),
+                    )
+                    .await
             }
             Self::PlayerQuit(player) => {
-                channel.say(http, format!("{} left the server.", with_mention!(players, player))).await
+                channel
+                    .say(
+                        http,
+                        format!("{} left the server.", with_mention!(players, player)),
+                    )
+                    .await
             }
             Self::PlayerDied(player) => {
-                channel.say(http, format!("{} died.", with_mention!(players, player))).await
+                channel
+                    .say(http, format!("{} died.", with_mention!(players, player)))
+                    .await
             }
             Self::Haldor(locations) => {
                 if locations.is_empty() {
-                    channel.say(http, String::from("No locations returned. Probably a bug.")).await
+                    channel
+                        .say(http, String::from("No locations returned. Probably a bug."))
+                        .await
                 } else {
                     channel.send_message(http, |msg| {
                         msg.embed(move |e| e
@@ -162,7 +188,16 @@ impl client::Message {
                     }).await
                 }
             }
-            Self::MobAttack(event_id) => channel.say(http, format!("We're under attack! No fancy embeds yet, but the id is `{event_id}`.")).await,
+            Self::MobAttack(event_id) => {
+                channel
+                    .say(
+                        http,
+                        format!(
+                            "We're under attack! No fancy embeds yet, but the id is `{event_id}`."
+                        ),
+                    )
+                    .await
+            }
         }
     }
 }

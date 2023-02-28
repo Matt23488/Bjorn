@@ -11,7 +11,9 @@ pub struct ValheimServerProcess {
     password: String,
     app_id: String,
     valheim: Option<Child>,
-    stdout_handler: Option<Arc<dyn Fn(&str) + Send + Sync>>,
+    stdout_handler: Option<Arc<dyn Fn(&str, bool) + Send + Sync>>,
+    stopped_handler: Option<Arc<dyn Fn() + Send + Sync>>,
+    crossplay: Option<bool>,
 }
 
 impl ValheimServerProcess {
@@ -24,32 +26,35 @@ impl ValheimServerProcess {
             app_id: String::from(app_id),
             valheim: None,
             stdout_handler: None,
+            stopped_handler: None,
+            crossplay: None,
         }
     }
 
     fn start_command(&self, crossplay: bool) -> Command {
-        let mut start_command =
-            process::Command::new(std::path::Path::new(&self.server_dir).join("valheim_server.exe"));
+        let mut start_command = process::Command::new(
+            std::path::Path::new(&self.server_dir).join("valheim_server.exe"),
+        );
 
-            start_command
-                .current_dir(&self.server_dir)
-                .args([
-                    "-nographics",
-                    "-batchmode",
-                    "-name",
-                    &self.name,
-                    "-port",
-                    "2456",
-                    "-world",
-                    &self.world,
-                    "-password",
-                    &self.password,
-                    "-public",
-                    "0",
-                ])
-                .env("SteamAppId", &self.app_id)
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped());
+        start_command
+            .current_dir(&self.server_dir)
+            .args([
+                "-nographics",
+                "-batchmode",
+                "-name",
+                &self.name,
+                "-port",
+                "2456",
+                "-world",
+                &self.world,
+                "-password",
+                &self.password,
+                "-public",
+                "0",
+            ])
+            .env("SteamAppId", &self.app_id)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped());
 
         if crossplay {
             start_command.arg("-crossplay");
@@ -75,7 +80,7 @@ impl ValheimServerProcess {
                 let reader = std::io::BufReader::new(stdout);
                 for line in reader.lines() {
                     match line {
-                        Ok(line) => handler(line.as_str()),
+                        Ok(line) => handler(line.as_str(), crossplay),
                         Err(_) => break,
                     }
                 }
@@ -83,6 +88,7 @@ impl ValheimServerProcess {
         }
 
         self.valheim.replace(child);
+        self.crossplay.replace(crossplay);
 
         Ok(())
     }
@@ -103,14 +109,27 @@ impl ValheimServerProcess {
             .wait()
             .map_err(|e| ValheimServerProcessError::CouldNotStop(e.to_string()))?;
 
+        self.crossplay.take();
+
+        if let Some(stopped_handler) = &self.stopped_handler {
+            stopped_handler();
+        }
+
         Ok(())
     }
 
     pub fn handle_stdout<F>(&mut self, f: F)
     where
-        F: Fn(&str) + Send + Sync + 'static,
+        F: Fn(&str, bool) + Send + Sync + 'static,
     {
         self.stdout_handler = Some(Arc::new(f));
+    }
+
+    pub fn on_stopped<F>(&mut self, f: F)
+    where
+        F: Fn() + Send + Sync + 'static,
+    {
+        self.stopped_handler = Some(Arc::new(f));
     }
 
     pub fn is_running(&self) -> bool {
