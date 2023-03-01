@@ -16,6 +16,9 @@ pub use json::*;
 mod players;
 pub use players::*;
 
+mod attack_messages;
+pub use attack_messages::*;
+
 macro_rules! command_args {
     ($text:expr) => {
         $text
@@ -113,6 +116,7 @@ impl client::Message {
     pub async fn send_discord_message<'m>(
         &self,
         players: &Players,
+        attack_messages: &AttackMessages,
         http: &Arc<serenity::http::Http>,
         channel: &ChannelId,
     ) -> Result<Message, SerenityError> {
@@ -189,14 +193,23 @@ impl client::Message {
                 }
             }
             Self::MobAttack(event_id) => {
-                channel
+                match attack_messages.get_attack_message(event_id.as_str()) {
+                    Some(attack) => channel.send_message(http, |msg| {
+                        msg.embed(move |e| e
+                            .color(Color::RED)
+                            .title("We're under attack!")
+                            .description(&attack.message)
+                            .image(&attack.image)
+                        )
+                    }).await,
+                    None =>channel
                     .say(
                         http,
                         format!(
-                            "We're under attack! No fancy embeds yet, but the id is `{event_id}`."
+                            "We're under attack! There is no configuration for this particular attack, but the id is `{event_id}`."
                         ),
-                    )
-                    .await
+                    ).await
+                }
             }
         }
     }

@@ -28,11 +28,12 @@ impl discord_config::BjornMessageHandler for MessageHandler {
         http_and_cache: Arc<serenity::CacheAndHttp>,
         message: client::Message,
     ) {
-        let players = {
+        let (players, attack_messages) = {
             let data = data.read().await;
             let players = data.get::<Players>().unwrap().lock().unwrap();
+            let attack_messages = data.get::<AttackMessages>().unwrap().lock().unwrap();
 
-            players.clone()
+            (players.clone(), attack_messages.clone())
         };
 
         use_data!(data, |config: DiscordConfig| {
@@ -40,7 +41,12 @@ impl discord_config::BjornMessageHandler for MessageHandler {
             for channel in &config.listen_channels {
                 let channel = http_and_cache.cache.channel(*channel).unwrap().id();
                 message
-                    .send_discord_message(&players, &http_and_cache.http, &channel)
+                    .send_discord_message(
+                        &players,
+                        &attack_messages,
+                        &http_and_cache.http,
+                        &channel,
+                    )
                     .await
                     .unwrap();
 
@@ -109,8 +115,15 @@ impl discord_config::DiscordGame for DiscordConfig {
 
         serenity_data.insert::<ws_protocol::WsClient<server::Api>>(Mutex::new(server_api));
 
-        let players = Players::load(format!("{}/{}/players.json", config_path, Self::id(),));
+        let players = Players::load(format!("{}/{}/players.json", config_path, Self::id()));
         serenity_data.insert::<Players>(Arc::new(Mutex::new(players)));
+
+        let attack_messages = AttackMessages::load(format!(
+            "{}/{}/attack_messages.json",
+            config_path,
+            Self::id()
+        ));
+        serenity_data.insert::<AttackMessages>(Arc::new(Mutex::new(attack_messages)));
 
         tokio::spawn(runner.run(addr.clone()));
         tokio::spawn(client_handler.run(addr.clone()));
