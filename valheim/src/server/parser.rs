@@ -122,7 +122,11 @@ static PARSERS: Lazy<Vec<Box<Parser>>> = Lazy::new(|| {
             }
         },
         parser! {
-            (r#"Session "\w+" with join code (\d{6}) and IP \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:2456 is active with \d+ player\(s\)$"#, ServerState { players, .. }) = [code] => {
+            (r#"Session "\w+" with join code (\d{6}) and IP \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:2456 is active with \d+ player\(s\)$"#, ServerState { players, running, crossplay }) = [code] => {
+                if *running.lock().unwrap() || !*crossplay {
+                    return None;
+                }
+
                 players.lock().unwrap().clear();
                 Some(client::Message::StartupComplete(Some(String::from(*code))))
             }
