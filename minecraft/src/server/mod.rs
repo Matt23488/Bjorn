@@ -75,7 +75,13 @@ impl Handler {
         let server_dir = std::env::var("BJORN_MINECRAFT_SERVER")
             .expect("Minecraft server environment not properly configured.");
 
-        let mut server_process = MinecraftServerProcess::build(server_dir.as_str());
+        let server_jar = std::env::var("BJORN_MINECRAFT_SERVER_JAR")
+            .unwrap_or("server.jar".into());
+
+        let max_memory = std::env::var("BJORN_MINECRAFT_MAX_MEMORY")
+            .unwrap_or("4G".into());
+
+        let mut server_process = MinecraftServerProcess::build(&server_dir, &server_jar, &max_memory);
         let players = Arc::new(Mutex::new(vec![]));
 
         let client_api = Arc::new(Mutex::new(client_api));

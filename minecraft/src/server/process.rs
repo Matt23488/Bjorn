@@ -12,12 +12,13 @@ pub struct MinecraftServerProcess {
 }
 
 impl MinecraftServerProcess {
-    pub fn build(dir: &str) -> Self {
+    pub fn build(dir: &str, server_jar: &str, max_memory: &str) -> Self {
         let mut start_command = process::Command::new("java");
 
         start_command
             .current_dir(dir)
-            .args(["-Xmx1024M", "-Xms1024M", "-jar", "server.jar", "nogui"])
+            // .args(["-Xmx1024M", "-Xms1024M", "-jar", "server.jar", "nogui"])
+            .args([&format!("-Xmx{}", max_memory), "-jar", server_jar, "nogui"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped());
 

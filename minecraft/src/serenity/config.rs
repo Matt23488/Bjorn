@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use discord_config::use_data;
 use serenity::{
-    async_trait, framework::standard::macros::group, http::Typing, model::prelude::Message,
+    async_trait, framework::standard::macros::group, http::Typing, model::{id::WebhookId, prelude::Message, webhook::Webhook},
     prelude::*,
 };
 use ws_protocol::WsTask;
@@ -83,7 +83,11 @@ impl discord_config::BjornMessageHandler for MessageHandler {
         use_data!(data, |config: DiscordConfig| {
             let mut typing_results = vec![];
             for channel in &config.chat_channels {
-                let channel = http_and_cache.cache.channel(*channel).unwrap().id();
+                let webhook_id = WebhookId(channel.id);
+                let _webhook = Webhook::from_id_with_token(&http_and_cache.http, webhook_id, &channel.token);
+                
+                // TODO: Convert this to webhook call
+                let channel = http_and_cache.cache.channel(channel.id).unwrap().id();
 
                 channel
                     .send_message(http_and_cache.http.clone(), |msg| {
@@ -193,13 +197,22 @@ impl discord_config::DiscordGame for DiscordConfig {
 pub struct DiscordConfig {
     roles: discord_config::RoleConfig,
     listen_channels: Vec<u64>,
-    chat_channels: Vec<u64>,
+    chat_channels: Vec<WebhookConfig>,
 }
 
 impl DiscordConfig {
     pub fn is_chat_channel(&self, channel_id: serenity::model::prelude::ChannelId) -> bool {
-        self.chat_channels.contains(&channel_id.0)
+        // self.chat_channels.iter().map(|c| c.id).contains(&channel_id.0)
+        self.chat_channels
+            .iter()
+            .any(|c| c.id == channel_id.0)
     }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct WebhookConfig {
+    id: u64, 
+    token: String,
 }
 
 struct TypingResults(Vec<Typing>);
