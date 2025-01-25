@@ -58,12 +58,7 @@ pub async fn run() {
     })
     .expect("Ctrl+C Handler failed");
 
-    tokio::select! {
-        _ = valheim_ws_handler => {}
-        _ = valheim_api_runner => {}
-        _ = minecraft_ws_handler => {}
-        _ = minecraft_api_runner => {}
-    }
+    tokio::join!(valheim_ws_handler, valheim_api_runner, minecraft_ws_handler, minecraft_api_runner);
 }
 
 use async_trait::async_trait;
