@@ -81,34 +81,43 @@ impl discord_config::BjornMessageHandler for MessageHandler {
         }
 
         use_data!(data, |config: DiscordConfig| {
-            let mut typing_results = vec![];
+            // let mut typing_results = vec![];
             for channel in &config.chat_channels {
                 let webhook_id = WebhookId(channel.id);
-                let _webhook = Webhook::from_id_with_token(&http_and_cache.http, webhook_id, &channel.token);
-                
-                // TODO: Convert this to webhook call
-                let channel = http_and_cache.cache.channel(channel.id).unwrap().id();
+                let webhook = Webhook::from_id_with_token(&http_and_cache.http, webhook_id, &channel.token).await.unwrap();
 
-                channel
-                    .send_message(http_and_cache.http.clone(), |msg| {
-                        msg.content(&message_text)
-                    })
-                    .await
-                    .unwrap();
+                let embed = serenity::model::prelude::Embed::fake(|e| {
+                    e.title("Game Message")
+                        .description(
+                            &message_text
+                        )
+                });
 
-                if has_follow_up {
-                    if let Ok(typing) = channel.start_typing(&http_and_cache.http) {
-                        typing_results.push(typing);
-                    }
-                }
+                webhook.execute(&http_and_cache.http, false, |w| w.content("test").username("serenity").embeds(vec![embed])).await.unwrap();
+
+                // // TODO: Convert this to webhook call
+                // let channel = http_and_cache.cache.channel(channel.id).unwrap().id();
+
+                // channel
+                //     .send_message(http_and_cache.http.clone(), |msg| {
+                //         msg.content(&message_text)
+                //     })
+                //     .await
+                //     .unwrap();
+
+                // if has_follow_up {
+                //     if let Ok(typing) = channel.start_typing(&http_and_cache.http) {
+                //         typing_results.push(typing);
+                //     }
+                // }
             }
 
             let mut data = data.write().await;
-            if has_follow_up {
-                data.insert::<TypingResults>(Arc::new(Mutex::new(Some(TypingResults(
-                    typing_results,
-                )))));
-            } else {
+            // if has_follow_up {
+            //     data.insert::<TypingResults>(Arc::new(Mutex::new(Some(TypingResults(
+            //         typing_results,
+            //     )))));
+            // } else {
                 if let Some(typing_results) = data.remove::<TypingResults>() {
                     if let Some(typing_results) = typing_results.lock().unwrap().take() {
                         typing_results
@@ -118,7 +127,7 @@ impl discord_config::BjornMessageHandler for MessageHandler {
                             .for_each(Option::unwrap_or_default);
                     }
                 }
-            }
+            // }
         });
     }
 }
