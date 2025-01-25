@@ -104,6 +104,10 @@ impl Handler {
             world_path,
         }
     }
+
+    pub fn is_configured() -> bool {
+        std::env::var("BJORN_VALHEIM_SERVER").is_ok()
+    }
 }
 
 impl ws_protocol::ClientApiHandler for Handler {

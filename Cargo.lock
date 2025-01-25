@@ -452,6 +452,7 @@ dependencies = [
 name = "game_manager"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "ctrlc",
  "minecraft",
  "tokio",

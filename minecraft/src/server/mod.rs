@@ -105,6 +105,10 @@ impl Handler {
             players,
         }
     }
+
+    pub fn is_configured() -> bool {
+        std::env::var("BJORN_MINECRAFT_SERVER").is_ok()
+    }
 }
 
 impl ws_protocol::ClientApiHandler for Handler {
