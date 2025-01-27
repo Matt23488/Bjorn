@@ -43,9 +43,18 @@ impl TpLocations {
         Some(self.locations.iter().find(|l| l.name == name)?.coords)
     }
 
-    pub fn save_coords(&mut self, name: String, coords: RealmCoords) -> bool {
-        if self.locations.iter().find(|l| l.name == name).is_some() {
-            return false;
+    pub fn save_coords(&mut self, name: String, coords: RealmCoords, force: bool) -> bool {
+        let existing_index = self.locations
+            .iter()
+            .enumerate()
+            .find_map(|(index, loc)| if loc.name == name { Some(index) } else { None });
+
+        if let Some(index) = existing_index {
+            if !force {
+                return false;
+            }
+
+            self.locations.swap_remove(index);
         }
 
         self.locations.push(TpLocation { name, coords });

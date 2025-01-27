@@ -79,7 +79,8 @@ pub async fn tp(ctx: &Context, msg: &Message) -> CommandResult {
     match command_args!(msg.content) {
         [] => send_tp_help_text(ctx, msg).await,
         ["set", "list"] => list_saved_locations(ctx, msg).await,
-        ["set", name, realm, x, y, z] => save_tp_location(ctx, msg, name, realm, x, y, z).await,
+        ["set", name, realm, x, y, z] => save_tp_location(ctx, msg, name, realm, x, y, z, false).await,
+        ["set", name, realm, x, y, z, "force"] => save_tp_location(ctx, msg, name, realm, x, y, z, true).await,
         ["set", ..] => send_tp_set_help_text(ctx, msg).await,
         [target, ..] => teleport(ctx, msg, name, target).await,
     }
@@ -204,10 +205,11 @@ async fn send_tp_set_help_text(ctx: &Context, msg: &Message) -> CommandResult {
             e.title("Setting a saved location")
                 .color(Color::FADED_PURPLE)
                 .description("To set a saved location, the command must match this format:")
-                .field("format", "`!tp set <name> <o|n|e> <x> <y> <z>`", false)
+                .field("format", "`!tp set <name> <o|n|e> <x> <y> <z> [force]`", false)
                 .field("name", "An alphanumeric name to give to the location.", true)
                 .field("o|n|e", "Which realm the location is contained in. `o` for Overworld, `n` for Nether, or `e` for The End.", true)
                 .field("x y z", "The 3D coordinates to save, separated by spaces. To obtain these, press F3 in game and your current coordinates are near the top on the left side of the screen.", true)
+                .field("[force]", "If provided (without the square brackets), will overwrite existing location saved with the same name.", true)
         })
         .add_embed(|e| {
             e.title("Listing saved locations")
@@ -228,6 +230,7 @@ async fn save_tp_location(
     x: &str,
     y: &str,
     z: &str,
+    force: bool,
 ) -> CommandResult {
     let x = x.parse::<f64>();
     let y = y.parse::<f64>();
@@ -246,12 +249,12 @@ async fn save_tp_location(
     let success = {
         let data = ctx.data.read().await;
         let mut tp_locations = data.get::<TpLocations>().unwrap().lock().unwrap();
-        tp_locations.save_coords(String::from(name), coords)
+        tp_locations.save_coords(String::from(name), coords, force)
     };
 
     let reply = match success {
         true => format!("Minecraft teleport location `{name}` saved as `{coords:?}`."),
-        false => format!("Minecraft teleport location `{name}` is already registered."),
+        false => format!("Minecraft teleport location `{name}` is already registered. Add \"force\" at the end of the command to overwrite."),
     };
 
     msg.reply(ctx, reply).await?;
