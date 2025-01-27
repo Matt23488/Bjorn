@@ -17,6 +17,8 @@ type SetupFn = Box<
     ) -> Result<(), ()>,
 >;
 
+static CONFIG_PATH: &str = "discord_games";
+
 pub struct Bot {
     bot_token: String,
     framework: StandardFramework,
@@ -63,7 +65,7 @@ impl Bot {
             self.game_setups.into_iter().for_each(|(game, setup)| {
                 setup(
                     discord_config::DiscordGameSetupData {
-                        config_path: String::from("discord_games"),
+                        config_path: String::from(CONFIG_PATH),
                         data: client.data.clone(),
                         cache_and_http: client.cache_and_http.clone(),
                         addr: addr.clone(),
