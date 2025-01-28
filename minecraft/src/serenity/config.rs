@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use discord_config::use_data;
 use serenity::{
-    async_trait, framework::standard::macros::group, http::Typing, model::{id::WebhookId, prelude::Message, webhook::Webhook},
+    async_trait, framework::standard::macros::group, http::Typing, model::prelude::Message,
     prelude::*,
 };
 use ws_protocol::WsTask;
@@ -14,7 +14,7 @@ impl TypeMapKey for DiscordConfig {
 }
 
 #[group]
-#[commands(mstart, mstop, save, tp, players, mplayer)] // TODO: Macro to add commands in?
+#[commands(mstart, mstop, save, tp, players, mplayer, messages)] // TODO: Macro to add commands in?
 struct Minecraft;
 
 pub struct MessageHandler;
@@ -218,6 +218,14 @@ impl DiscordConfig {
         self.chat_channels
             .iter()
             .any(|c| c.id == channel_id.0)
+    }
+
+    pub fn toggle_server_messages(&mut self, enabled: bool) {
+        self.suppress_server_messages = !enabled;
+    }
+
+    pub fn server_messages_enabled(&self) -> bool {
+        !self.suppress_server_messages
     }
 }
 

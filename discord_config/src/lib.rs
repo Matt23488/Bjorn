@@ -133,10 +133,12 @@ pub trait BjornMessageHandler {
     );
 }
 
+// I hate the way $mut works here, but I couldn't figure out a better way to make it work.
+// It's ambiguous with $item AND $key, so it has to be separated from them both syntactically.
 #[macro_export]
 macro_rules! use_data {
-    ($data:expr, |$item:ident: $key:ty| $body:expr) => {{
-        let $item = loop {
+    ($data:expr, $($mut:ident)? |$item:ident: $key:ty| $body:expr) => {{
+        let $($mut)? $item = loop {
             let data = $data.read().await;
             let opt = data.get::<$key>().unwrap().lock().unwrap().take();
 

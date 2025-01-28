@@ -7,7 +7,7 @@ use serenity::{
     utils::Color,
 };
 
-use discord_config::DiscordGame;
+use discord_config::{use_data, DiscordGame};
 
 use crate::{
     client,
@@ -91,6 +91,38 @@ pub async fn mplayer(ctx: &Context, msg: &Message) -> CommandResult {
     match command_args!(msg.content) {
         [] => echo_player_name(ctx, msg).await,
         [name, ..] => register_player_name(ctx, msg, *name).await,
+    }
+}
+
+#[bjorn_command(DiscordConfig)]
+pub async fn messages(ctx: &Context, msg: &Message) -> CommandResult {
+    match command_args!(msg.content) {
+        [value @ ("on" | "off")] => {
+            let enabled = match value {
+                &"on" => true,
+                _ => false,
+            };
+
+            use_data!(ctx.data, mut |config: DiscordConfig| {
+                config.toggle_server_messages(enabled);
+            });
+
+            msg.reply(ctx, format!("Server messages toggled {value} successfully.")).await?;
+
+            Ok(())
+        },
+        [..] => {
+            let value = use_data!(ctx.data, |config: DiscordConfig| {
+                match config.server_messages_enabled() {
+                    true => "on",
+                    false => "off",
+                }
+            });
+
+            msg.reply(ctx, format!("Syntax: `!messages <on|off>`\nMessages currently toggled {value}")).await?;
+            
+            Ok(())
+        },
     }
 }
 
