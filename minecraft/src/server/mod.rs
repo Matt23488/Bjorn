@@ -9,37 +9,34 @@ use std::sync::{Arc, Mutex};
 
 use crate::client;
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
-pub enum RealmCoords {
-    Overworld(f64, f64, f64),
-    Nether(f64, f64, f64),
-    End(f64, f64, f64),
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RealmCoords {
+    id: String,
+    x: f64,
+    y: f64,
+    z: f64,
 }
 
 impl RealmCoords {
-    pub fn new(realm: &str, x: f64, y: f64, z: f64) -> Option<RealmCoords> {
-        match realm {
-            "o" => Some(RealmCoords::Overworld(x, y, z)),
-            "n" => Some(RealmCoords::Nether(x, y, z)),
-            "e" => Some(RealmCoords::End(x, y, z)),
-            _ => None,
+    pub fn new(realm: &str, x: f64, y: f64, z: f64) -> Self {
+        Self {
+            id: realm.into(),
+            x,
+            y,
+            z,
         }
     }
 
-    pub fn realm_string(&self) -> String {
-        match self {
-            RealmCoords::Overworld(_, _, _) => String::from("minecraft:overworld"),
-            RealmCoords::Nether(_, _, _) => String::from("minecraft:the_nether"),
-            RealmCoords::End(_, _, _) => String::from("minecraft:the_end"),
-        }
+    pub fn realm_string(&self) -> &String {
+        &self.id
     }
 
     pub fn coords(&self) -> (f64, f64, f64) {
-        match self {
-            RealmCoords::Overworld(x, y, z) => (*x, *y, *z),
-            RealmCoords::Nether(x, y, z) => (*x, *y, *z),
-            RealmCoords::End(x, y, z) => (*x, *y, *z),
-        }
+        (
+            self.x,
+            self.y,
+            self.z
+        )
     }
 }
 

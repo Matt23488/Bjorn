@@ -40,7 +40,7 @@ impl Json for TpLocations {
 
 impl TpLocations {
     pub fn get_coords(&self, name: &str) -> Option<RealmCoords> {
-        Some(self.locations.iter().find(|l| l.name == name)?.coords)
+        Some(self.locations.iter().find(|l| l.name == name)?.coords.clone())
     }
 
     pub fn save_coords(&mut self, name: String, coords: RealmCoords, force: bool) -> bool {

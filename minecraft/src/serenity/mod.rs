@@ -198,7 +198,7 @@ async fn list_saved_locations(ctx: &Context, msg: &Message) -> CommandResult {
                 let e = e.title("Saved Locations").color(Color::ROSEWATER);
 
                 locations.into_iter().fold(e, |e, loc| {
-                    e.field(loc.name, format!("`{:?}`", loc.coords), true)
+                    e.field(loc.name, format!("`{:?}`", loc.coords), false)
                 })
             })
         })
@@ -237,9 +237,9 @@ async fn send_tp_set_help_text(ctx: &Context, msg: &Message) -> CommandResult {
             e.title("Setting a saved location")
                 .color(Color::FADED_PURPLE)
                 .description("To set a saved location, the command must match this format:")
-                .field("format", "`!tp set <name> <o|n|e> <x> <y> <z> [force]`", false)
+                .field("format", "`!tp set <name> <dimension> <x> <y> <z> [force]`", false)
                 .field("name", "An alphanumeric name to give to the location.", true)
-                .field("o|n|e", "Which realm the location is contained in. `o` for Overworld, `n` for Nether, or `e` for The End.", true)
+                .field("dimension", "Which realm the location is contained in. `minecraft:overworld` for Overworld, `minecraft:the_nether` for Nether, etc.", true)
                 .field("x y z", "The 3D coordinates to save, separated by spaces. To obtain these, press F3 in game and your current coordinates are near the top on the left side of the screen.", true)
                 .field("[force]", "If provided (without the square brackets), will overwrite existing location saved with the same name.", true)
         })
@@ -273,15 +273,12 @@ async fn save_tp_location(
         _ => return send_tp_set_help_text(ctx, msg).await,
     };
 
-    let coords = match RealmCoords::new(realm, x, y, z) {
-        Some(coords) => coords,
-        None => return send_tp_set_help_text(ctx, msg).await,
-    };
+    let coords = RealmCoords::new(realm, x, y, z);
 
     let success = {
         let data = ctx.data.read().await;
         let mut tp_locations = data.get::<TpLocations>().unwrap().lock().unwrap();
-        tp_locations.save_coords(String::from(name), coords, force)
+        tp_locations.save_coords(String::from(name), coords.clone(), force)
     };
 
     let reply = match success {
