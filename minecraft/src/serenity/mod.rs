@@ -94,7 +94,7 @@ pub async fn mplayer(ctx: &Context, msg: &Message) -> CommandResult {
     }
 }
 
-#[bjorn_command(DiscordConfig)]
+#[bjorn_command(DiscordConfig, admin)]
 pub async fn messages(ctx: &Context, msg: &Message) -> CommandResult {
     match command_args!(msg.content) {
         [value @ ("on" | "off")] => {
