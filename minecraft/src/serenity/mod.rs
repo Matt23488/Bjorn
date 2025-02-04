@@ -126,6 +126,30 @@ pub async fn messages(ctx: &Context, msg: &Message) -> CommandResult {
     }
 }
 
+// #[bjorn_command(DiscordConfig, admin)]
+// pub async fn backup(ctx: &Context, _: &Message) -> CommandResult {
+//     dispatch(ctx, server::Message::BackupWorld).await
+// }
+
+#[bjorn_command(DiscordConfig, admin)]
+pub async fn cmd(ctx: &Context, msg: &Message) -> CommandResult {
+    let command_text = match command_args!(msg.content) {
+        [args @ ..] => {
+            let data = ctx.data.read().await;
+            let players = data.get::<Players>().unwrap().lock().unwrap();
+            
+            args.iter().map(|arg| {
+                match Mention::from_str(ctx, arg) {
+                    Ok(Mention::User(UserId(user_id))) => players.get_registered_name(user_id).unwrap_or(String::from(*arg)),
+                    _ => String::from(*arg),
+                }
+            }).collect::<Vec<_>>().join(" ")
+        }
+    };
+
+    dispatch(ctx, server::Message::Command(command_text)).await
+}
+
 async fn teleport(ctx: &Context, msg: &Message, player: String, target: &str) -> CommandResult {
     if &target[0..1] == "$" {
         return tp_saved_location(ctx, msg, player, &target[1..]).await;

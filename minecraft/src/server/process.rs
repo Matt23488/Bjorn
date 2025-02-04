@@ -1,29 +1,30 @@
 use std::{
-    io::{BufRead, Write},
-    process::{self, Child, ChildStdin, Command, Stdio},
-    sync::Arc,
+    io::{BufRead, Write}, path::{Path, PathBuf}, process::{self, Child, ChildStdin, Command, Stdio}, sync::Arc
 };
 
 pub struct MinecraftServerProcess {
     start_command: Command,
+    _world_path: PathBuf,
+    _backup_path: Option<String>,
     minecraft: Option<Child>,
     stdin: Option<ChildStdin>,
     stdout_handler: Option<Arc<dyn Fn(&str) + Send + Sync>>,
 }
 
 impl MinecraftServerProcess {
-    pub fn build(dir: &str, server_jar: &str, max_memory: &str) -> Self {
+    pub fn build(dir: &str, server_jar: &str, max_memory: &str, world_name: String, _backup_path: Option<String>) -> Self {
         let mut start_command = process::Command::new("java");
 
         start_command
             .current_dir(dir)
-            // .args(["-Xmx1024M", "-Xms1024M", "-jar", "server.jar", "nogui"])
             .args([&format!("-Xmx{}", max_memory), "-jar", server_jar, "nogui"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped());
 
         MinecraftServerProcess {
             start_command,
+            _world_path: Path::new(dir).join(world_name),
+            _backup_path,
             minecraft: None,
             stdin: None,
             stdout_handler: None,
@@ -92,6 +93,10 @@ impl MinecraftServerProcess {
         self.send_to_stdin(format!("tp {player} {target}\n").as_bytes())
     }
 
+    pub fn command(&mut self, command_text: &str) -> Result<(), MinecraftServerProcessError> {
+        self.send_to_stdin(command_text.as_bytes())
+    }
+
     pub fn tp_loc(
         &mut self,
         player: &str,
@@ -122,6 +127,22 @@ impl MinecraftServerProcess {
     pub fn is_running(&self) -> bool {
         self.minecraft.is_some()
     }
+
+    // pub fn backup_world(&self) -> Result<(), MinecraftServerProcessError> {
+    //     let backup_path = match &self.backup_path {
+    //         Some(backup_path) => backup_path,
+    //         None => return Err(MinecraftServerProcessError::BackupPathNotConfigured),
+    //     };
+
+    //     match std::fs::read_dir(&self.world_path) {
+    //         Ok(_) => {
+    //             // Something here
+
+    //             Ok(())
+    //         },
+    //         Err(_) => Err(MinecraftServerProcessError::BackupPathNotConfigured),
+    //     }
+    // }
 }
 
 #[derive(Debug)]
@@ -130,6 +151,7 @@ pub enum MinecraftServerProcessError {
     NotRunning,
     CouldNotStart(String),
     CouldNotStop(String),
+    // BackupPathNotConfigured,
 }
 
 impl std::fmt::Display for MinecraftServerProcessError {
@@ -145,6 +167,8 @@ impl std::fmt::Display for MinecraftServerProcessError {
                     format!("Minecraft server couldn't start: {err}"),
                 MinecraftServerProcessError::CouldNotStop(err) =>
                     format!("Minecraft server couldn't stop: {err}"),
+                // MinecraftServerProcessError::BackupPathNotConfigured =>
+                //     "Backup path not configured.".into(),
             }
         )
     }

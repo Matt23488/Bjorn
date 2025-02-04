@@ -49,6 +49,8 @@ pub enum Message {
     Tp(String, String),
     TpLoc(String, RealmCoords),
     QueryPlayers,
+    // BackupWorld,
+    Command(String),
 }
 
 pub struct Api;
@@ -78,7 +80,10 @@ impl Handler {
         let max_memory = std::env::var("BJORN_MINECRAFT_MAX_MEMORY")
             .unwrap_or("4G".into());
 
-        let mut server_process = MinecraftServerProcess::build(&server_dir, &server_jar, &max_memory);
+        let world_name = std::env::var("BJORN_MINECRAFT_WORLD_NAME").unwrap_or("world".into());
+        let backup_path = std::env::var("BJORN_MINECRAFT_BACKUP_PATH").ok();
+
+        let mut server_process = MinecraftServerProcess::build(&server_dir, &server_jar, &max_memory, world_name, backup_path);
         let players = Arc::new(Mutex::new(vec![]));
 
         let client_api = Arc::new(Mutex::new(client_api));
@@ -151,6 +156,13 @@ impl ws_protocol::ClientApiHandler for Handler {
                     self.players.lock().unwrap().clone(),
                 ));
                 Ok(())
+            }
+            // Message::BackupWorld => {
+            //     self.server_process.backup_world()
+            //     // Ok(())
+            // }
+            Message::Command(text) => {
+                self.server_process.command(&format!("{text}\n"))
             }
         }
         .unwrap_or_else(|e| client_api.send(client::Message::Info(e.to_string())));
