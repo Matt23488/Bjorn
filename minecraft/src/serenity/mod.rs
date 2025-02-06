@@ -138,7 +138,7 @@ pub async fn cmd(ctx: &Context, msg: &Message) -> CommandResult {
             let data = ctx.data.read().await;
             let players = data.get::<Players>().unwrap().lock().unwrap();
             
-            args.iter().map(|arg| {
+            args.into_iter().map(|arg| {
                 match Mention::from_str(ctx, arg) {
                     Ok(Mention::User(UserId(user_id))) => players.get_registered_name(user_id).unwrap_or(String::from(*arg)),
                     _ => String::from(*arg),

@@ -99,12 +99,15 @@ impl discord_config::BjornMessageHandler for MessageHandler {
                     // TODO: Convert this to webhook call
                     let channel = http_and_cache.cache.channel(channel.id).unwrap().id();
 
-                    channel
+                    let message_result = channel
                         .send_message(http_and_cache.http.clone(), |msg| {
                             msg.content(&message_text)
                         })
-                        .await
-                        .unwrap();
+                        .await;
+
+                    if let Err(e) = message_result {
+                        dbg!("Error sending message to Discord channel:", e);
+                    }
 
                     if has_follow_up {
                         if let Ok(typing) = channel.start_typing(&http_and_cache.http) {
