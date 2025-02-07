@@ -4,15 +4,15 @@ use std::{
 
 pub struct MinecraftServerProcess {
     start_command: Command,
-    _world_path: PathBuf,
-    _backup_path: Option<String>,
+    world_path: PathBuf,
+    backup_path: Option<String>,
     minecraft: Option<Child>,
     stdin: Option<ChildStdin>,
     stdout_handler: Option<Arc<dyn Fn(&str) + Send + Sync>>,
 }
 
 impl MinecraftServerProcess {
-    pub fn build(dir: &str, server_jar: &str, max_memory: &str, world_name: String, _backup_path: Option<String>) -> Self {
+    pub fn build(dir: &str, server_jar: &str, max_memory: &str, world_name: String, backup_path: Option<String>) -> Self {
         let mut start_command = process::Command::new("java");
 
         start_command
@@ -23,8 +23,8 @@ impl MinecraftServerProcess {
 
         MinecraftServerProcess {
             start_command,
-            _world_path: Path::new(dir).join(world_name),
-            _backup_path,
+            world_path: Path::new(dir).join(world_name),
+            backup_path,
             minecraft: None,
             stdin: None,
             stdout_handler: None,
@@ -128,21 +128,21 @@ impl MinecraftServerProcess {
         self.minecraft.is_some()
     }
 
-    // pub fn backup_world(&self) -> Result<(), MinecraftServerProcessError> {
-    //     let backup_path = match &self.backup_path {
-    //         Some(backup_path) => backup_path,
-    //         None => return Err(MinecraftServerProcessError::BackupPathNotConfigured),
-    //     };
+    pub fn backup_world(&self) -> Result<String, MinecraftServerProcessError> {
+        let (backup_path, dir_name) = match &self.backup_path {
+            Some(backup_path) => {
+                let dir_name = chrono::Local::now().format("%Y_%m%dT%H%M%S").to_string();
+                let backup_path = std::path::Path::new(backup_path).join(&dir_name);
+                
+                (backup_path, dir_name)
+            },
+            None => return Err(MinecraftServerProcessError::BackupPathNotConfigured),
+        };
+        
+        super::fs::copy_dir(&self.world_path.as_path(), backup_path.as_path())?;
 
-    //     match std::fs::read_dir(&self.world_path) {
-    //         Ok(_) => {
-    //             // Something here
-
-    //             Ok(())
-    //         },
-    //         Err(_) => Err(MinecraftServerProcessError::BackupPathNotConfigured),
-    //     }
-    // }
+        Ok(dir_name)
+    }
 }
 
 #[derive(Debug)]
@@ -151,7 +151,8 @@ pub enum MinecraftServerProcessError {
     NotRunning,
     CouldNotStart(String),
     CouldNotStop(String),
-    // BackupPathNotConfigured,
+    BackupPathNotConfigured,
+    BackupFailed(std::io::Error),
 }
 
 impl std::fmt::Display for MinecraftServerProcessError {
@@ -167,11 +168,19 @@ impl std::fmt::Display for MinecraftServerProcessError {
                     format!("Minecraft server couldn't start: {err}"),
                 MinecraftServerProcessError::CouldNotStop(err) =>
                     format!("Minecraft server couldn't stop: {err}"),
-                // MinecraftServerProcessError::BackupPathNotConfigured =>
-                //     "Backup path not configured.".into(),
+                MinecraftServerProcessError::BackupPathNotConfigured =>
+                    "Backup path not configured.".into(),
+                MinecraftServerProcessError::BackupFailed(err) =>
+                    format!("Backup failed: {err}"),
             }
         )
     }
 }
 
 impl std::error::Error for MinecraftServerProcessError {}
+
+impl From<std::io::Error> for MinecraftServerProcessError {
+    fn from(value: std::io::Error) -> Self {
+        Self::BackupFailed(value)
+    }
+}

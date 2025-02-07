@@ -1,3 +1,5 @@
+mod fs;
+
 mod parser;
 use parser::*;
 
@@ -49,7 +51,7 @@ pub enum Message {
     Tp(String, String),
     TpLoc(String, RealmCoords),
     QueryPlayers,
-    // BackupWorld,
+    BackupWorld,
     Command(String),
 }
 
@@ -157,10 +159,12 @@ impl ws_protocol::ClientApiHandler for Handler {
                 ));
                 Ok(())
             }
-            // Message::BackupWorld => {
-            //     self.server_process.backup_world()
-            //     // Ok(())
-            // }
+            Message::BackupWorld => {
+                client_api.send(client::Message::BackupBegin);
+
+                self.server_process.backup_world()
+                    .map(|dir_name| client_api.send(client::Message::BackupComplete(dir_name)))
+            }
             Message::Command(text) => {
                 self.server_process.command(&format!("{text}\n"))
             }

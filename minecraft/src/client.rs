@@ -21,6 +21,8 @@ pub enum Message {
     Players(Vec<String>),
     Command(String, String, String),
     NamedEntityDied(String, String),
+    BackupBegin,
+    BackupComplete(String),
 }
 
 macro_rules! with_mention {
@@ -78,12 +80,16 @@ impl Message {
             Message::NamedEntityDied(entity, message) => format!(
                 "It is with great sadness I bring news that our beloved `{entity}` {message}."
             ),
+            Message::BackupBegin => "Backing up world...".into(),
+            Message::BackupComplete(dir_name) => format!(
+                "Backup completed (saved as `{dir_name}`)"
+            ),
         }
     }
 
     pub fn indicates_follow_up(&self) -> bool {
         match self {
-            Message::StartupBegin | Message::ShutdownBegin => true,
+            Message::StartupBegin | Message::ShutdownBegin | Message::BackupBegin => true,
             _ => false,
         }
     }

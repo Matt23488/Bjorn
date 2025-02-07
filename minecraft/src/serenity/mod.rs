@@ -126,10 +126,10 @@ pub async fn messages(ctx: &Context, msg: &Message) -> CommandResult {
     }
 }
 
-// #[bjorn_command(DiscordConfig, admin)]
-// pub async fn backup(ctx: &Context, _: &Message) -> CommandResult {
-//     dispatch(ctx, server::Message::BackupWorld).await
-// }
+#[bjorn_command(DiscordConfig, admin)]
+pub async fn backup(ctx: &Context, _: &Message) -> CommandResult {
+    dispatch(ctx, server::Message::BackupWorld).await
+}
 
 #[bjorn_command(DiscordConfig, admin)]
 pub async fn cmd(ctx: &Context, msg: &Message) -> CommandResult {
