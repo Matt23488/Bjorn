@@ -22,7 +22,7 @@ pub enum Message {
     Command(String, String, String),
     NamedEntityDied(String, String),
     BackupBegin,
-    BackupComplete(String),
+    BackupComplete(String, u64),
 }
 
 macro_rules! with_mention {
@@ -81,8 +81,8 @@ impl Message {
                 "It is with great sadness I bring news that our beloved `{entity}` {message}."
             ),
             Message::BackupBegin => "Backing up world...".into(),
-            Message::BackupComplete(dir_name) => format!(
-                "Backup completed (saved as `{dir_name}`)"
+            Message::BackupComplete(dir_name, size) => format!(
+                "Backup completed (saved as `{}`, {})", dir_name, WorldSize::from_raw_size(*size)
             ),
         }
     }
@@ -92,6 +92,41 @@ impl Message {
             Message::StartupBegin | Message::ShutdownBegin | Message::BackupBegin => true,
             _ => false,
         }
+    }
+}
+
+const UNITS: [&'static str;4] = ["B", "KB", "MB", "GB"];
+
+struct WorldSize {
+    size: f64,
+    units: &'static str,
+}
+
+impl WorldSize {
+    fn from_raw_size(size: u64) -> Self {
+        let (size, units) = {
+            let mut i = 0;
+            let mut size = size as f64;
+            loop {
+                if size < 1024f64 || i == UNITS.len() - 1 {
+                    break (size, UNITS[i]);
+                }
+
+                size /= 1024f64;
+                i += 1;
+            }
+        };
+
+        Self {
+            size,
+            units,
+        }
+    }
+}
+
+impl std::fmt::Display for WorldSize {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.2} {}", self.size, self.units)
     }
 }
 

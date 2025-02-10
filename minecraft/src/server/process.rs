@@ -128,7 +128,7 @@ impl MinecraftServerProcess {
         self.minecraft.is_some()
     }
 
-    pub fn backup_world(&self) -> Result<String, MinecraftServerProcessError> {
+    pub fn backup_world(&self) -> Result<WorldBackupResult, MinecraftServerProcessError> {
         let (backup_path, dir_name) = match &self.backup_path {
             Some(backup_path) => {
                 let dir_name = chrono::Local::now().format("%Y_%m%dT%H%M%S").to_string();
@@ -139,9 +139,12 @@ impl MinecraftServerProcess {
             None => return Err(MinecraftServerProcessError::BackupPathNotConfigured),
         };
         
-        super::fs::copy_dir(&self.world_path.as_path(), backup_path.as_path())?;
+        let world_size = super::fs::copy_dir(&self.world_path.as_path(), backup_path.as_path())?;
 
-        Ok(dir_name)
+        Ok(WorldBackupResult {
+            dir_name,
+            size: world_size,
+        })
     }
 }
 
@@ -183,4 +186,9 @@ impl From<std::io::Error> for MinecraftServerProcessError {
     fn from(value: std::io::Error) -> Self {
         Self::BackupFailed(value)
     }
+}
+
+pub struct WorldBackupResult {
+    pub dir_name: String,
+    pub size: u64,
 }

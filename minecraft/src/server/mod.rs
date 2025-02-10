@@ -163,7 +163,7 @@ impl ws_protocol::ClientApiHandler for Handler {
                 client_api.send(client::Message::BackupBegin);
 
                 self.server_process.backup_world()
-                    .map(|dir_name| client_api.send(client::Message::BackupComplete(dir_name)))
+                    .map(|WorldBackupResult{ dir_name, size }| client_api.send(client::Message::BackupComplete(dir_name, size)))
             }
             Message::Command(text) => {
                 self.server_process.command(&format!("{text}\n"))
