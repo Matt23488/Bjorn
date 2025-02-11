@@ -139,7 +139,7 @@ impl MinecraftServerProcess {
             None => Err(MinecraftServerProcessError::BackupPathNotConfigured),
         }?;
         
-        let world_size = super::fs::copy_dir(&self.server_path.as_path(), backup_path.as_path())?;
+        let world_size = super::fs::copy_dir(self.server_path.as_path(), backup_path.as_path())?;
 
         Ok(WorldBackupResult {
             dir_name,
