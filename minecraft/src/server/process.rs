@@ -131,13 +131,13 @@ impl MinecraftServerProcess {
     pub fn backup_world(&self) -> Result<WorldBackupResult, MinecraftServerProcessError> {
         let (backup_path, dir_name) = match &self.backup_path {
             Some(backup_path) => {
-                let dir_name = chrono::Local::now().format("%Y_%m%dT%H%M%S").to_string();
+                let dir_name = chrono::Local::now().format("%Y_%m%d_%H%M%S").to_string();
                 let backup_path = std::path::Path::new(backup_path).join(&dir_name);
                 
-                (backup_path, dir_name)
+                Ok((backup_path, dir_name))
             },
-            None => return Err(MinecraftServerProcessError::BackupPathNotConfigured),
-        };
+            None => Err(MinecraftServerProcessError::BackupPathNotConfigured),
+        }?;
         
         let world_size = super::fs::copy_dir(&self.world_path.as_path(), backup_path.as_path())?;
 

@@ -106,7 +106,7 @@ impl WorldSize {
     fn from_raw_size(size: u64) -> Self {
         let (size, units) = {
             let mut i = 0;
-            let mut size = size as f64;
+            let mut size = size as f64; // I don't expect a World size to ever exceed what can be represented in an f64, so this is fine
             loop {
                 if size < 1024f64 || i == UNITS.len() - 1 {
                     break (size, UNITS[i]);
