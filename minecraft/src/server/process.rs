@@ -4,7 +4,7 @@ use std::{
 
 pub struct MinecraftServerProcess {
     start_command: Command,
-    world_path: PathBuf,
+    server_path: PathBuf,
     backup_path: Option<String>,
     minecraft: Option<Child>,
     stdin: Option<ChildStdin>,
@@ -12,7 +12,7 @@ pub struct MinecraftServerProcess {
 }
 
 impl MinecraftServerProcess {
-    pub fn build(dir: &str, server_jar: &str, max_memory: &str, world_name: String, backup_path: Option<String>) -> Self {
+    pub fn build(dir: &str, server_jar: &str, max_memory: &str, backup_path: Option<String>) -> Self {
         let mut start_command = process::Command::new("java");
 
         start_command
@@ -23,7 +23,7 @@ impl MinecraftServerProcess {
 
         MinecraftServerProcess {
             start_command,
-            world_path: Path::new(dir).join(world_name),
+            server_path: Path::new(dir).to_path_buf(),
             backup_path,
             minecraft: None,
             stdin: None,
@@ -128,7 +128,7 @@ impl MinecraftServerProcess {
         self.minecraft.is_some()
     }
 
-    pub fn backup_world(&self) -> Result<WorldBackupResult, MinecraftServerProcessError> {
+    pub fn backup_server(&self) -> Result<WorldBackupResult, MinecraftServerProcessError> {
         let (backup_path, dir_name) = match &self.backup_path {
             Some(backup_path) => {
                 let dir_name = chrono::Local::now().format("%Y_%m%d_%H%M%S").to_string();
@@ -139,7 +139,7 @@ impl MinecraftServerProcess {
             None => Err(MinecraftServerProcessError::BackupPathNotConfigured),
         }?;
         
-        let world_size = super::fs::copy_dir(&self.world_path.as_path(), backup_path.as_path())?;
+        let world_size = super::fs::copy_dir(&self.server_path.as_path(), backup_path.as_path())?;
 
         Ok(WorldBackupResult {
             dir_name,

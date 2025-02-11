@@ -82,10 +82,9 @@ impl Handler {
         let max_memory = std::env::var("BJORN_MINECRAFT_MAX_MEMORY")
             .unwrap_or("4G".into());
 
-        let world_name = std::env::var("BJORN_MINECRAFT_WORLD_NAME").unwrap_or("world".into());
         let backup_path = std::env::var("BJORN_MINECRAFT_BACKUP_PATH").ok();
 
-        let mut server_process = MinecraftServerProcess::build(&server_dir, &server_jar, &max_memory, world_name, backup_path);
+        let mut server_process = MinecraftServerProcess::build(&server_dir, &server_jar, &max_memory, backup_path);
         let players = Arc::new(Mutex::new(vec![]));
 
         let client_api = Arc::new(Mutex::new(client_api));
@@ -162,7 +161,7 @@ impl ws_protocol::ClientApiHandler for Handler {
             Message::BackupWorld => {
                 client_api.send(client::Message::BackupBegin);
 
-                self.server_process.backup_world()
+                self.server_process.backup_server()
                     .map(|WorldBackupResult{ dir_name, size }| client_api.send(client::Message::BackupComplete(dir_name, size)))
             }
             Message::Command(text) => {
