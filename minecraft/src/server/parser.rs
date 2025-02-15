@@ -143,5 +143,8 @@ static PARSERS: Lazy<Vec<Box<Parser>>> = Lazy::new(|| {
                 String::from(*message),
             )
         },
+        parser! {
+            (r"Saving oversized chunk \[-?\d+, -?\d+\] \(\d+ bytes\} to external file (.+)$") = [file_path] => client::Message::OversizedChunk(String::from(*file_path))
+        },
     ]
 });

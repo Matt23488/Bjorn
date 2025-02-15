@@ -23,6 +23,7 @@ pub enum Message {
     NamedEntityDied(String, String),
     BackupBegin,
     BackupComplete(String, u64),
+    OversizedChunk(String),
 }
 
 macro_rules! with_mention {
@@ -83,6 +84,9 @@ impl Message {
             Message::BackupBegin => "Backing up world...".into(),
             Message::BackupComplete(dir_name, size) => format!(
                 "Backup completed (saved as `{}`, {})", dir_name, WorldSize::from_raw_size(*size)
+            ),
+            Message::OversizedChunk(file_path) => format!(
+                "Oversized chunk detected. If the server crashes, delete this file: `{file_path}`"
             ),
         }
     }
